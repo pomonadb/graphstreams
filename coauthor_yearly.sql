@@ -7,7 +7,7 @@ CREATE VIEW `coauthor_yearly` AS
          `ca`.`coauthor_id` AS `coauthor_id`,
           `p`.`year` AS `year`,
           count(distinct(`p`.`eid` )) AS `num_pubs`
-  FROM  `co_author` `ca`, `publications` `p`
+  FROM  `co_author` `ca`, `publication` `p`
   WHERE `p`.`eid` = `ca`.`entity_id`
   GROUP BY `ca`.`author_id`,`ca`.`coauthor_id`, `p`.`year`;
  
