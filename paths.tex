@@ -1,0 +1,195 @@
+\documentclass{article}
+
+\usepackage{amsmath,amsthm,amssymb,tkz-graph,float}
+
+\newtheorem{thm}{Theorem}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{alg}[thm]{Algorithm}
+
+\theoremstyle{definition}
+\newtheorem{defn}[thm]{Definition}
+
+\numberwithin{thm}{subsection}
+
+\begin{document}
+
+\begin{center} \Large Shortest Path definitions\end{center}
+
+\section{Preliminary Definitions}
+
+Last week we talked about several potential definitions of `temporal shortest
+path' that have different semantic value. We will consider these definitions
+and address their usefulness by examining algorithms and attempting to prove
+different facts.
+
+\begin{defn}
+  An \textbf{edge-varying temporal network} is a tuple $G \in V \times E$ where
+  the set $V$ is the set of vertices, and $E \in V^2 \times T^2$, where $V$ is
+  the set of vertices and $T = [0,\infty)$.  The first vertex represents the
+  A \textbf{vertex-varying temporal network} is a tuple $G \in V \times E$ where
+  the set $V$ is the set of vertices -- each labelled with a start and end time,
+  and $E \in V^2$ , a pair of vertices.
+  When the vertex pair within the edges is ordered, call the graph
+  \textbf{directed}; otherwise call it \textbf{undirected}.
+\end{defn}
+
+Specifically we will analyze the effect of these definitions on the coauthorship
+and citation networks.
+
+
+\begin{defn}
+  A \textbf{coauthorship network} is an undirected edge-varying temporal network
+  in which each node represents an author, and the existence of an edge represents
+  a collaboration over a period of time.
+\end{defn}
+
+\begin{defn}
+  Edge persitence is the amount of time for which an edge is present. More
+  formally, in a graph $(V,E)$ the persistence of an edge $(u,v,t_1,t_2)$ is
+  defined as $t_2 - t_1$.
+\end{defn}
+
+\begin{defn}
+  A citation network is a directed edge-varying temporal network $(V,E)$ with
+  infinite edge persistence. So for all edges $(u,v,t_1,t_2)\in E$,
+  $t_2 = \infty$. For simplicity, we can write edges as $u \to_{t_1} v$ or
+  $(u,v)_{t_1}$.  In this network, each node represents an author, and the
+  existence of an edge $u \to_{t_1} v$ means that author $v$ cited author $u$
+  at time $t$. This way the direction of the arrow represents the flow of
+  information.
+\end{defn}
+
+
+Now we will move on to consider the different analysis methodologies that will
+result from different temporal definitions of `shortest path'.
+
+\begin{defn}
+  A graph is a \textbf{path} if it is a simple graph whose vertices can be linearly
+  ordered such that there is an edge $uv$ if an only if $u$ and $v$ are adjacent
+  in the ordering.
+  A digraph is a \textbf{path} if it is a simple directed graph whose vertices
+  can be linearly ordered such that there is an edge $u \to v$ if and only if
+  $v$ immediately follows $u$ in the ordering.
+\end{defn}
+
+\begin{defn}
+ A \textbf{shortest path} between $v_1, u$ (di)graph $G = (V,E)$ is
+ $P = v_1, v_2, \cdots, v_n, u$ such that $v_i \in V$ for all $i in [n]$,
+ and $v_jv_{j+1}, v_nu \in E$, for all $j \in [n-1]$, and there is no path
+ $P' = v_1, v_2, \cdots, v_m, u$ such that $m < n$.
+ \end{defn}
+
+Note that this definition does not enforce uniqueness of shortest paths.
+
+\section{Consecutive Contemporaneity}
+
+Here, we consider the addition of paths to include a temporal component, where
+any two consecutive edges must share some contemporary period. This is a sensible
+definition as two edges should not be able to form a path in a temporal network
+if they did not happen at the same time. This is formally defined below.
+
+\begin{defn}
+  A \textbf{consecutive temporal path} between $v_1$ and $v_n$ is a path
+  $P = v_1, v_2, \cdots, v_n$ such that $v_i \in V$ for all $i \in [n]$,
+  and $v_jv_{j+1} \in E$, for all $j \in [n-1]$, and for every pair of
+  consectutive edges $(v_{i-1},v_{i})_{t_1}$ and $(v_{i}, v_{i+1})_{t_2}$,
+  $t_1 \leq t_2$.
+\end{defn}
+
+We will consider the consequenses of this definition inthe context of different
+edge-behaviours, infinite persistence, and windowed persistence.
+
+\subsection{Infinitely Persistent Edges}
+
+The first model we will consider is the simplest of the three, where we disallow
+edge-deletion. We will define the persistent coauthorship network to have this
+property. [note about semantic equivalence to railway network?]
+
+\begin{defn}
+  The \textbf{persistent coauthorship network} a couthorship network $G = (V,E)$,
+  where for all $(u,v,t_1,t_2) \in E$, $t_2 = \infty$. For simplicity, we can
+  denote an edge by $(u,v)_{t_1}$ or $u -_{t_1} v$. Since this network is
+  undirected, $(u,v)_{t_1} = (v,u)_{t_1}$.
+\end{defn}
+
+Then, we can consider what a reasonable definition of `shortest path' might be.
+In this model, once an edge exists, it is always traversible, so if author
+$a_1$ wrote a paper with author $a_2$ in 1932, and author $a_2$ wrote a paper with
+$a_3$ in 1990, we can find a path between $a_1$ and $a_3$.  It is also feasible
+that $a_1$ wrote a paper with $a_4$ in 1932 as well, and then $a_4$ and $a_3$
+wrote a paper in 1933. These two paths $P_1 = a_1 -_{1932} a_2 -_{1990} a_3$, and
+$P_2 = a_1 -_{1932} a_4 -_{1933} a_5$ should have some manner of differentation,
+since the difference in start times of the edges is 1 58 in $P_1$ and only 1
+in $P_1$. This distinction motivates a difference in fastest vs. shortest path.
+
+
+\begin{defn}
+  The \textbf{persistent shortest path} beteween $u$ and $v$ is a consecutive
+  temporal path $u,v_1,\cdots,v_n,v$ such there exists no other $u,u_1, \cdots u_m,v$ such that $m < n$.
+
+  The \textbf{persistent fastest path} bewteen $v_1$ and $v_n$ is consecutive
+  temporal path $v_1,v_2,\cdots,v_n$, with first edge $(v_1,v_2)_{t_1}$ and last
+  edge $(v_{n-1},v_n)_{t_{n-1}}$, such that there exists no other
+  $u_1,u_2, \cdots, u_m$ with first edge $(u_1,u_2)_{s_1}$, last edge
+  $(u_{m-1},u_m)_{s_{m-1}}$ and $s_{m-1} - s_1 < t_{n-1} - t_{1}$.
+\end{defn}
+
+
+\begin{cor}
+  Shortest path in persistent coauthorship network is the same as the shortest
+  path in the aggregated static graph.
+\end{cor}
+
+\begin{proof}[Proof. (Idea)]
+  Since the edges have infinite persistence, can just wait at a vertex until
+  the desired edge in the aggregated graph shows up.
+\end{proof}
+
+
+\subsection{Windowed edges}
+
+Now consider that we in fact limit the persistence of the edges with an endpoint
+specific to each edge (as is specified in the definition of an edge-varying
+temporal graph). The definition of this graph is the same as in definition 1.1
+and 1.2. We call this graph a \textbf{windowed coauthorship network} or simply
+a \textbf{coauthorship network}. If we specify a universal edge-persistence $t$
+such that for all edges $(u,v,t_1,t_2)$ in the network, $t = t_2 - t_1$, then
+we call this coauthorship network \textbf{$t$-windowed}.
+
+When we consider the above definition (2.1) of a path it is clearly too
+simplistic, as it does not consider that an edge may cease to exist. So let
+us consider a new definition of a temporal path.
+
+\begin{defn}
+  A \textbf{windowed temporal path} bewteen $v_1$ and $v_n$ is a collection of
+  edges $(v_1,v_2,s_1,t_1),(v_2,v_3,s_2,t_2), \cdots (v_{n-1},v_{n}, s_{n-1}, t_{n-1})$
+  such that $v_1$ and $v_n$ have degree $n$, and the remaining vertices have
+  degree 2.  Most importantly, $t_i \geq s_{i+1}$ for all $i \in [n-2]$.
+\end{defn}
+
+The definitions for fastest and shortest path will be the same as in definition
+2.1.2.
+
+
+\section{Pairwise contemporaneity}
+
+Here we can consider many of the same definitions, but under are different
+lens of contemporaneity for paths. Here we want all edges to have some overlap
+in their time interval.
+
+\begin{defn}
+  A \textbf{pairwise contemporary temporal path} between $v_1$ and $v_n$ is a
+  collection of edges $(v_1,v_2,s_1,t_1), (v_2,v_3,s_2,t_2), \cdots (v_{n-1},v_n,s_{n-1}, t_{n-1})$, such that $\bigcap_{i \in [n-1]} [s_i, t_i] \neq \emptyset$.
+\end{defn}
+
+As might be expected, pairwise contemporary temporal paths behave the same way
+that consecutive temporal paths do in the persistent coauthorship network.
+Since the edges have infinite persistence, all edges are contemporary `at
+infinity.'
+
+In the case of the windowed coauthorship network, the definitions remain the same
+for shortest and fastest paths.
+
+
+\end{document}
