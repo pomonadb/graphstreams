@@ -45,14 +45,16 @@ continue our research.
   vertices, and $E \in V^2 \times T^2$ is the set of edges such that
   $T = [0, \infty)$:
 
-  $$G = (V, E)$$
+  \[ G = (V, E) \]
 
   Each edge $e \in E$ is a 5-tuple $(v_i, v_j, t_0, t_f, w)$ such that
   $v_i, v_j \in V$, $t_0, t_f \in T$, and $t_0 \leq t_f$. An edge is said to
   connect $v_i$ to $v_j$ (with the possibility of $v_i = v_j$) between the time
   $[t_0, t_f]$ with weight $w$. That is, all edges are to be treated as directed
   edges with some weight and time-window (possibly instantaneous) in which they
-  are \textit{active}.
+  are \textit{active}. Additionally, we will maintain the standard definitions
+  of \textit{size} and \textit{order} defined respectively: $|E| = m$,
+  $|V| = n$.
 \end{defn}
 
 With this generalized definition of a temporal network, we will begin to explain
@@ -61,15 +63,7 @@ some common, specialized descriptors of these networks:
 \begin{defn}
   We will describe a temporal graph as \textbf{undirected} $\forall e \in E$
   if there exists $e' \in E$ such that $e = (v_i, v_j, t_0, t_f,w)$ and $e' =
-  (v_j, v_i, t_0, t_f, w)$.\footnote{As we consider the real-life applications
-  of these temporal networks, it may be convenient to define an edge as
-  a 6-tuple with the last component $l$ being a unique label or edge
-  differentiator. This would allow for the following scenario: if author
-  \texttt{A} and \texttt{B} collaborate in window $[t_0, t_f]$ on multiple
-  papers with the same weight, we could differentiate two edges connecting the
-  two authors instead of condensing the two paper collaborations into one edge.
-  In many cases, it may not make sense to do this, but it is valuable to have
-  an umbrella definition that encompasses every type of graph we could create.}
+  (v_j, v_i, t_0, t_f, w)$.
 
   Informally, if for every directed edge in the graph, there exists a
   corresponding edge in the opposite direction connecting the same two
@@ -99,7 +93,7 @@ some common, specialized descriptors of these networks:
 \end{defn}
 
 \begin{defn}
-  \textbf{Interval networks} or \textbf{windowed networks} shall be defined as
+  \textbf{Windowed networks} shall be defined as
   any temporal network where for at least one edge $e = (v_i, v_j, t_0, t_f,w)$,
   $t_0 \neq t_f$.
 \end{defn}
@@ -111,8 +105,8 @@ some common, specialized descriptors of these networks:
 \end{defn}
 
 \begin{defn}
-  An \textbf{aggregate network} shall be defined as a temporal network where
-  every edge is \textbf{infinitely persistent}.
+  An \textbf{infinitely-edge-persisting network} shall be defined as a temporal
+  network where every edge is \textbf{infinitely persistent}.
 \end{defn}
 
 \begin{defn}
