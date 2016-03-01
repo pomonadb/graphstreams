@@ -50,26 +50,36 @@ continue our research.
   Each edge $e \in E$ is a 5-tuple $(v_i, v_j, t_0, t_f, w)$ such that
   $v_i, v_j \in V$, $t_0, t_f \in T$, and $t_0 \leq t_f$. An edge is said to
   connect $v_i$ to $v_j$ (with the possibility of $v_i = v_j$) between the time
-  $[t_0, t_f]$ with weight $w$. That is, all edges are to be treated as directed
-  edges with some weight and time-window (possibly instantaneous) in which they
-  are \textit{active}. Additionally, we will maintain the standard definitions
-  of \textit{size} and \textit{order} defined respectively: $|E| = m$,
-  $|V| = n$.
+  $[t_0, t_f]$ with weight $w \in W$ with $W \subseteq \mathbb{R}$. That is, all
+  edges are to be treated as directed edges with some weight and time-window
+  (possibly instantaneous) in which they are \textit{active}. Additionally, we
+  will maintain the standard definitions of \textit{size} and \textit{order}
+  defined respectively: $|E| = m$,  $|V| = n$.
 \end{defn}
 
 With this generalized definition of a temporal network, we will begin to explain
 some common, specialized descriptors of these networks:
 
 \begin{defn}
-  We will describe a temporal graph as \textbf{undirected} $\forall e \in E$
-  if there exists $e' \in E$ such that $e = (v_i, v_j, t_0, t_f,w)$ and $e' =
-  (v_j, v_i, t_0, t_f, w)$.
+  We will define an \textbf{undirected temporal graph} as a temporal network
+  $(V,E^2)$ with $V$ a set of vertices and $E^2$ is a set such
+  that $e \in E^2$ is defined to be an unordered pair of 5-tuples
 
-  Informally, if for every directed edge in the graph, there exists a
-  corresponding edge in the opposite direction connecting the same two
-  vertices and labeled with the exact same $t_i, t_f,$ and $w$, we will consider
-  the temporal graph to be undirected.
+    \[e = \left((u,v,t_0, t_f, w), (v,u,t_0,t_f, w)\right)\]
+
+  with $u,v \in V, t_0, t_f \in [0, \infty],$ and $w \in W$ with
+  $W \subseteq \mathbb{R}$. For simplicity, we can describe an edge $e$ as above
+  by its first or second 5-tuple, since the existence of one implies the
+  existence of the other.
 \end{defn}
+
+Note that there is a direct transformation between undirected temporal graphs and
+directed temporal networks. To go from undirected to directed, for every edge
+$(e_l,e_r) \in E^2$, add edges $e_l \in E$ and $e_r \in E$ to the directed
+network. To go from directed to undirected, if for every $u,v$ pair in the
+directed network, the number of edges of the form $(u,v,t_0,t_f,w)$ is the same
+as the number of edges of the form $(u,v,t_0,t_f,w)$, then pair up these edges;
+otherwise there is no transformation.
 
 \begin{defn}
   We will describe a temporal graph as \textbf{unweighted} if every edge in $E$
