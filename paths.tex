@@ -11,8 +11,13 @@
 
 \theoremstyle{definition}
 \newtheorem{defn}[thm]{Definition}
-
 \numberwithin{thm}{subsection}
+
+\newcommand{\W}{\mathcal{W}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\T}{\text{T}}
+
+
 
 \title{Temporal Graphs Research at Pomona College\\
   \textit{Working Definitions and Vocabulary}
@@ -44,44 +49,36 @@ continue our research.
 \begin{defn}
   A \textbf{temporal graph} or \textbf{temporal network}\footnote{We will treat
   the terms \textit{graph} and \textit{network} synonymously throughout this
-  paper.} is defined as a tuple $G \in V \times E$ where $V$ is the set of
-  vertices, and $E \in V^2 \times T^2$ is the set of edges such that
-  $T = [0, \infty)$:
+  paper.} is defined as a tuple $G = (V,E,\T,\W)$ where $V$ is the set of
+  vertices, and $E \subset V^2$ is the set of edges. A graph is \textbf{directed} if
+  $(u,v) \in E$ is an ordered pair, and is \textbf{undirected} if unordered.
 
-  \[ G = (V, E) \]
+  $\T$ is a function $\T : E \to \Z^2$ with the co-domain being the start and
+  end times of the vertices, in number of time units (you can always pick a
+  smaller time unit so that the bounds of this interval are integral). Note that
+  forall $e \in E$ with $\T(e) = (t_s, t_f)$, $t_s \leq t_f$. In a
+  \textbf{static} graph, where $\T(e) = (\infty, \infty)$ for all $e \in E$,
+  leave $\T$ out of the definition of the graph. $\W$ is a function
 
-  Each edge $e \in E$ is a 5-tuple $(v_i, v_j, t_0, t_f, w)$ such that
-  $v_i, v_j \in V$, $t_0, t_f \in T$, and $t_0 \leq t_f$. An edge is said to
-  connect $v_i$ to $v_j$ (with the possibility of $v_i = v_j$) between the time
-  $[t_0, t_f]$ with weight $w \in W$ with $W \subseteq \mathbb{R}$. That is, all
-  edges are to be treated as directed edges with some weight and time-window
-  (possibly instantaneous) in which they are \textit{active}. Additionally, we
-  will maintain the standard definitions of \textit{size} and \textit{order}
-  defined respectively: $|E| = m$,  $|V| = n$.
+  $\W : E \to \Z$ representing the integer weight of each edge. In an
+  \textbf{unweighted} graph if every edge has the same weight, then we can
+  leave $\W$ out of the definition.
+
+  All edges are to be treated as directed edges with some weight $\W$ and
+  time-window $\T$ (possibly instantaneous) in which they are \textit{active}.
+  Additionally, we will maintain the standard definitions of \textit{size} and
+  \textit{order} defined respectively: $|E| = m$,  $|V| = n$.
 \end{defn}
 
 With this generalized definition of a temporal network, we will begin to explain
 some common, specialized descriptors of these networks:
-
-\begin{defn}
-  We will define an \textbf{undirected temporal graph} as a temporal network
-  $(V,E^2)$ with $V$ a set of vertices and $E^2$ is a set such
-  that $e \in E^2$ is defined to be an unordered pair of 5-tuples
-
-    \[e = \left((u,v,t_0, t_f, w), (v,u,t_0,t_f, w)\right)\]
-
-  with $u,v \in V, t_0, t_f \in [0, \infty],$ and $w \in W$ with
-  $W \subseteq \mathbb{R}$. For simplicity, we can describe an edge $e$ as above
-  by its first or second 5-tuple, since the existence of one implies the
-  existence of the other.
-\end{defn}
 
 Note that there is a direct transformation between undirected temporal graphs and
 directed temporal networks. To go from undirected to directed, for every edge
 $(e_l,e_r) \in E^2$, add edges $e_l \in E$ and $e_r \in E$ to the directed
 network. To go from directed to undirected, if for every $u,v$ pair in the
 directed network, the number of edges of the form $(u,v,t_0,t_f,w)$ is the same
-as the number of edges of the form $(u,v,t_0,t_f,w)$, then pair up these edges;
+as the number of edges of the form $(v,u,t_0,t_f,w)$, then pair up these edges;
 otherwise there is no transformation.
 
 \begin{defn}
@@ -91,24 +88,23 @@ otherwise there is no transformation.
 
 \begin{defn}
   \textbf{Edge persistence} is the amount of time for which an edge is present.
-  More formally, in a graph $(V,E)$ the persistence of an edge $(u,v,t_1,t_2,
-  w)$ is defined as $t_2 - t_1$ or simply $\delta t$.
+  More formally, in a graph $(V,E,\T,\W)$ the persistence of an edge $e$
+  is defined, for $T(e) = (t_s,t_f)$, as $|T(e)| = t_f - t_s$.
 \end{defn}
 
 \begin{defn}
-  An edge $e \in E$ is said to be \textbf{infinitely persistent}
-  if $t_f = \infty$.
+  An edge $e \in E$ is said to be \textbf{infinitely persistent} if
+  $T(e) = (t_s, \infty)$.
 \end{defn}
 
 \begin{defn}
   A \textbf{instantaneous edge} or \textbf{contact edge} is any edge $e \in E$
-  where $t_0 = t_f$.
+  where $|T(e)| = 0$.
 \end{defn}
 
 \begin{defn}
-  \textbf{Windowed networks} shall be defined as
-  any temporal network where for at least one edge $e = (v_i, v_j, t_0, t_f,w)$,
-  $t_0 \neq t_f$.
+  \textbf{Windowed networks} shall be defined as any temporal network where
+  there is an edge $e$ with $|\T(e)| \neq 0$.
 \end{defn}
 
 \begin{defn}
@@ -125,18 +121,18 @@ otherwise there is no transformation.
 \begin{defn}
   A \textbf{co-authorship network} is an undirected interval network in which
   each node represents an author, and the existence of an edge between two nodes
-  represents a collaboration over the a period of time $\delta t$. Unless stated
-  otherwise, we shall assume a \textit{collaboration} to mean two authors worked
-  on $1$ or more publications together in $\delta t$.
+  represents a collaboration over the a period of time. Unless stated otherwise,
+  we shall assume a \textit{collaboration} to mean two authors $a_1$ and $a_2$
+  worked on (at least) one publication together in $\T(a_1,a_2)$.
 \end{defn}
 
 \begin{defn}
-  A \textbf{citation network} is a directed interval network $(V,E)$ with
+  A \textbf{citation network} is a directed interval network \\ $(V,E,\T,\W)$ with
   infinite edge persistence. For simplicity, we can write edges as $u \to_{t_1}
-  v$ or $(u,v)_{t_1}$.  In this network, each node represents an author, and the
-  existence of an edge $u \to_{t_1} v$ means that author $v$ cited author $u$
-  at time $t$. This way the direction of the arrow represents the flow of
-  information.
+  v$ or $(u,v)_{t_1}$, with $(t_1,\infty) = \T(u,v)$. In this network, each node
+  represents an author, and the existence of an edge $u \to_{t_1} v$ means that
+  author $v$ cited author $u$ at time $t$. This way the direction of the arrow
+  represents the flow of information.
 \end{defn}
 
 
@@ -145,7 +141,7 @@ result from different temporal definitions of `shortest path'.
 
 \begin{defn}
   A graph is a \textbf{path} if it is a simple graph whose vertices can be linearly
-  ordered such that there is an edge $uv$ if an only if $u$ and $v$ are adjacent
+  ordered such that there is an edge $uv$ if and only if $u$ and $v$ are adjacent
   in the ordering.
   A digraph is a \textbf{path} if it is a simple directed graph whose vertices
   can be linearly ordered such that there is an edge $u \to v$ if and only if
@@ -153,10 +149,11 @@ result from different temporal definitions of `shortest path'.
 \end{defn}
 
 \begin{defn}
- A \textbf{shortest path} between $v_1, u$ (di)graph $G = (V,E)$ is
- $P = v_1, v_2, \cdots, v_n, u$ such that $v_i \in V$ for all $i \in [n]$,
- and $v_jv_{j+1}, v_nu \in E$, for all $j \in [n-1]$, and there is no path
- $P' = v_1, v_2, \cdots, v_m, u$ such that $m < n$.
+ A static \textbf{shortest path} between $u,v$ in a static (di)graph
+ $G = (V,E,\W)$ is $P = e_1 = (u,u'), e_2, \cdots, e_n = (v',v)$,
+ $P \in E$ such that for all $e_i = (v_1,v_2), e_{i+1} = (v_3,v_4) \in E$,
+ $v_2 = v_3$, and for every $u,v$-path $P' = e'_1, e'_2, \cdots, e'_m$
+  \[\sum_{e'_i \in P'} \W(e'_i) < \sum_{e_i \in P} \W(e_i) \]
  \end{defn}
 
 Note that this definition does not enforce uniqueness of shortest paths.
@@ -169,11 +166,10 @@ definition as two edges should not be able to form a path in a temporal network
 if they did not happen at the same time. This is formally defined below.
 
 \begin{defn}
-  A \textbf{consecutive temporal path} between $v_1$ and $v_n$ is a path
-  $P = v_1, v_2, \cdots, v_n$ such that $v_i \in V$ for all $i \in [n]$,
-  and $v_jv_{j+1} \in E$, for all $j \in [n-1]$, and for every pair of
-  consectutive edges $(v_{i-1},v_{i})_{t_1}$ and $(v_{i}, v_{i+1})_{t_2}$,
-  $t_1 \leq t_2$.
+  \label{defn:cons_temp_path}
+  A \textbf{consecutive temporal path} between $u$ and $v$ is a $v_1,v_n$-path
+  $P = e_1, e_2, \cdots, e_n$ such that for consecutive edges $e_i,e_{i+1} \in P$,
+  $T(e_i) \cap T(e_j) \neq \emptyset$.
 \end{defn}
 
 We will consider the consequences of this definition in the context of different
@@ -214,7 +210,7 @@ Then, we can consider what a reasonable definition of `shortest path' might be.
 In this model, once an edge exists, it is always traversible, so if author
 $a_1$ wrote a paper with author $a_2$ in 1932, and author $a_2$ wrote a paper with
 $a_3$ in 1990, we can find a path between $a_1$ and $a_3$.  It is also feasible
-that $a_1$ wrote a paper with $a_4$ in 1932 as well, and then $a_4$ and $a_3$
+that $a_1$ wrote a paper with $a_4$ in 1932 as well, and then $a_4$ and $a_5$
 wrote a paper in 1933. These two paths $P_1 = a_1 -_{1932} a_2 -_{1990} a_3$, and
 $P_2 = a_1 -_{1932} a_4 -_{1933} a_5$ should have some manner of differentation,
 since the difference in start times of the edges is 58 in $P_1$ and only 1
@@ -226,11 +222,12 @@ difference in `fastest' vs. `shortest' path.
 
   \label{defn:short_fast_path}
 
-  The \textbf{temporal shortest path} beteween $u$ and $v$ is a consecutive
-  temporal path $u,v_1,\cdots,v_n,v$ such there exists no other $u,u_1, \cdots
-  u_m,v$ such that $m < n$.
+  The \textbf{temporal shortest path} between $u$ and $v$ is a consecutive
+  temporal $u,v$-path $P = e_1, \cdots, e_n$ such that that there is no other
+  path $u,v$-path $P = e'_1, \cdots, e_m$ where
+  \[\sum_{e'_i \in P'} \W(e'_i) < \sum_{e_i \in P} \W(e_i) \]
 
-  The \textbf{temporal fastest path} bewteen $v_1$ and $v_n$ is consecutive
+  The \textbf{temporal fastest path} from $v_1$ to $v_n$ is a consecutive
   temporal path $v_1,v_2,\cdots,v_n$, with first edge $(v_1,v_2)_{t_1}$ and last
   edge $(v_{n-1},v_n)_{t_{n-1}}$, such that there exists no other
   $u_1,u_2, \cdots, u_m$ with first edge $(u_1,u_2)_{s_1}$, last edge
@@ -255,39 +252,26 @@ Now consider that we in fact limit the persistence of the edges with an endpoint
 specific to each edge (as is specified in the definition of an interval network
 temporal graph). We call this graph a \textbf{windowed co-authorship network} or
 simply a \textbf{co-authorship network}. If we specify a universal
-edge-persistence $\Delta t$ such that for all edges $(u,v,t_1,t_2)$ in the
-network, $\Delta t = t_2 - t_1$, then we call this co-authorship network
+edge-persistence $\Delta t$ such that for all edges $e$ in the
+network, $\Delta t = |T(e)|$, then we call this co-authorship network
 \textbf{$\Delta t$-windowed}.
 
-When we consider the above definition of a path it is clearly too
-simplistic, as it does not consider that an edge may cease to exist. So let
-us consider a new definition of a temporal path.
+The definitions for temporal paths will be the same as for infinitely persistent
+edges, \ref{defn:cons_temp_path}. As well as those for fastest and shortest path
+will be the same as in definition \ref{defn:short_fast_path}.
 
-\begin{defn}
-  A \textbf{windowed temporal path} bewteen $v_1$ and $v_n$ is a collection of
-  edges $(v_1,v_2,s_1,t_1),(v_2,v_3,s_2,t_2), \cdots (v_{n-1},v_{n}, s_{n-1},
-  t_{n-1})$ such that $v_1$ and $v_n$ have degree $n$, and the remaining
-  vertices have degree 2.  Most importantly, $t_i \geq s_{i+1}$ for all $i \in
-  [n-2]$.
-\end{defn}
-
-The definitions for fastest and shortest path will be the same as in definition
-\ref{defn:short_fast_path}.
-
-\section{Pairwise Contemporaneity}
+\section{Complete Contemporaneity}
 
 Here we can consider many of the same definitions, but under are different
 lens of contemporaneity for paths. Here we want all edges to have some overlap
 in their time interval.
 
 \begin{defn}
-  A \textbf{pairwise contemporary temporal path} between $v_1$ and $v_n$ is a
-  collection of edges $(v_1,v_2,s_1,t_1), (v_2,v_3,s_2,t_2), \cdots (v_{n-1},
-  v_n,s_{n-1}, t_{n-1})$, such that $\bigcap_{i \in [n-1]} [s_i, t_i]
-  \neq \emptyset$.
+  A \textbf{complete temporal path} between $u$ and $v$ in a graph $(V,E, \T,\W)$
+  is a $u,v$-path $P \in E$ such that $\bigcap_{e \in P} T(e) \neq \emptyset$.
 \end{defn}
 
-As might be expected, pairwise contemporary temporal paths behave the same way
+As might be expected, complete temporal paths behave the same way
 that consecutive temporal paths do in the persistent co-authorship network.
 Since the edges have infinite persistence, all edges are contemporary `at
 infinity.'
@@ -313,8 +297,8 @@ same for shortest and fastest paths.
   \label{fig:windowed_path_ex}
 \end{figure}
 
-In Figure \ref{fig:windowed_path_ex}, there exists a pairwise contemporary path
-$P_1$ such that $P_1 = a_5-a_4-a_1$, but there does NOT exist a pairwise
-contemporary path $P_2$ such that $P_2 = a_5-a_4-a_1-a_2$.
+In Figure \ref{fig:windowed_path_ex}, there exists a complete contemporary path
+$P_1$ such that $P_1 = a_5a_4,a_4a_1$, but there does not exist a complete
+contemporary path $P_2$ such that $P_2 = a_5a_4,a_4a_1,a_1a_2$.
 
 \end{document}
