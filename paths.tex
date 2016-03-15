@@ -2,6 +2,12 @@
 
 \usepackage{amsmath,amsthm,amssymb,tikz,float}
 
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily,
+  columns=fullflexible
+}
+
 \usetikzlibrary{arrows,automata, positioning}
 
 \newtheorem{thm}{Theorem}
@@ -50,8 +56,8 @@ continue our research.
   A \textbf{temporal graph} or \textbf{temporal network}\footnote{We will treat
   the terms \textit{graph} and \textit{network} synonymously throughout this
   paper.} is defined as a tuple $G = (V,E,\T,\W)$ where $V$ is the set of
-  vertices, and $E \subset V^2$ is the set of edges. A graph is \textbf{directed} if
-  $(u,v) \in E$ is an ordered pair, and is \textbf{undirected} if unordered.
+  vertices, and $E \subset V^2$ is the set of edges. A graph is \textbf{directed}
+  if $(u,v) \in E$ is an ordered pair, and is \textbf{undirected} if unordered.
 
   $\T$ is a function $\T : E \to \Z^2$ with the co-domain being the start and
   end times of the vertices, in number of time units (you can always pick a
@@ -73,9 +79,9 @@ continue our research.
 With this generalized definition of a temporal network, we will begin to explain
 some common, specialized descriptors of these networks:
 
-Note that there is a direct transformation between undirected temporal graphs and
-directed temporal networks. To go from undirected to directed, for every edge
-$(e_l,e_r) \in E^2$, add edges $e_l \in E$ and $e_r \in E$ to the directed
+Note that there is a direct transformation between undirected temporal graphs
+and directed temporal networks. To go from undirected to directed, for every
+edge $(e_l,e_r) \in E^2$, add edges $e_l \in E$ and $e_r \in E$ to the directed
 network. To go from directed to undirected, if for every $u,v$ pair in the
 directed network, the number of edges of the form $(u,v,t_0,t_f,w)$ is the same
 as the number of edges of the form $(v,u,t_0,t_f,w)$, then pair up these edges;
@@ -127,12 +133,12 @@ otherwise there is no transformation.
 \end{defn}
 
 \begin{defn}
-  A \textbf{citation network} is a directed interval network \\ $(V,E,\T,\W)$ with
-  infinite edge persistence. For simplicity, we can write edges as $u \to_{t_1}
-  v$ or $(u,v)_{t_1}$, with $(t_1,\infty) = \T(u,v)$. In this network, each node
-  represents an author, and the existence of an edge $u \to_{t_1} v$ means that
-  author $v$ cited author $u$ at time $t$. This way the direction of the arrow
-  represents the flow of information.
+  A \textbf{citation network} is a directed interval network \\ $(V,E,\T,\W)$
+  with infinite edge persistence. For simplicity, we can write edges as
+  $u \to_{t_1} v$ or $(u,v)_{t_1}$, with $(t_1,\infty) = \T(u,v)$. In this
+  network, each node represents an author, and the existence of an edge
+  $u \to_{t_1} v$ means that author $v$ cited author $u$ at time $t$. This way
+  the direction of the arrow represents the flow of information.
 \end{defn}
 
 
@@ -140,9 +146,9 @@ Now we will move on to consider the different analysis methodologies that will
 result from different temporal definitions of `shortest path'.
 
 \begin{defn}
-  A graph is a \textbf{path} if it is a simple graph whose vertices can be linearly
-  ordered such that there is an edge $uv$ if and only if $u$ and $v$ are adjacent
-  in the ordering.
+  A graph is a \textbf{path} if it is a simple graph whose vertices can be
+  linearly ordered such that there is an edge $uv$ if and only if $u$ and $v$
+  are adjacent in the ordering.
   A digraph is a \textbf{path} if it is a simple directed graph whose vertices
   can be linearly ordered such that there is an edge $u \to v$ if and only if
   $v$ immediately follows $u$ in the ordering.
@@ -301,4 +307,168 @@ In Figure \ref{fig:windowed_path_ex}, there exists a complete contemporary path
 $P_1$ such that $P_1 = a_5a_4,a_4a_1$, but there does not exist a complete
 contemporary path $P_2$ such that $P_2 = a_5a_4,a_4a_1,a_1a_2$.
 
+\section{ Shortest Path Algorithms}
+
+In this section we present naive shortest path algorithms along with their proofs
+based on Dijkstra for consecutive and complete temporal paths. We will analyze
+these in the case of the unweighted coauthorship network $(V,E,T)$. They are each
+heavily based on the standard Breadth First Search, but performed on edges -
+not on vertices.
+
+
+For both
+algorithms we use the matrix \texttt{dist}, which represents a complete mapping
+between pairs of vertices and the distance between them, with the default
+value set to $\infty$. Similarly \texttt{interval} is an array representing the
+union of all edges on the shortest path to each edge, with the default value
+being \texttt{null}. R is a min-heap of edges \texttt{e}, sorted on
+\texttt{dist[src][snd e]}.
+
+The last piece of this is the helper-function \texttt{edge\_neighborhood}, which
+for an edge $e = (u,v)$ corresponds to the standard mathematical set
+$N_e(v) - \{e\}$. This computation will take $O(log m)$ using a B+-Tree index
+on the edge set. Its also possible to include an adjacency list in the definition
+of an edge, and have \texttt{edge\_neighborhood} pull it out, giving $O(1)$, but
+requiring precomputation with cost $O(m\log m)$.
+Each algorithm iterates through every vertex, and then in the
+worst case, every edge will enter $R$ at some point. So we have $O(nm\log m)$.
+
+\subsection{Consecutive Shortest Path Distance Algorithm}
+
+\begin{figure}[H]
+\begin{lstlisting}[frame=single]
+  Input : Graph (V,E,T), dist[][] entries set to Inf
+  Output : dist[][]
+
+  for src in V:
+    R := {(src,src)}
+    S := {}
+    dist[src][src] = 0
+    while R != {}:
+      pred_e := pop R
+      for e in edge_neighborhood(pred_e) - union S R:
+        if (intersect(T(pred_e),T(e)) != null)
+          dist[src][fst(e)] := dist[src][snd(e)] + 1
+          insert(e,R)
+      S += pred_e
+    return dist
+\end{lstlisting}
+\caption{An algorithm to compute the lengths of all consecutive temporal shortest
+paths}
+\label{fig:consec_STP_alg}
+\end{figure}
+
+\begin{proof}
+  The inductive proof follows by the proof of BFS and the definition of
+  consecutive shortest path.
+\end{proof}
+
+
+\subsection{Complete Shortest Path Distance Algorithm}
+
+\begin{figure}[H]
+\begin{lstlisting}[frame = single]
+  Input : Graph (V,E,T), dist[][] entries set to Inf
+  Output : dist[][]
+
+  for src in V:
+    R := {(src,src)}
+    S := {}
+    interval[] = repeat null |V| times.
+    dist[src][src] = 0
+    while R != {}:
+      pred_e := pop R
+      for e in edge_neighborhood(pred_e) - union S R:
+        if (intersect(interval[pred_e],T(e)) != null)
+          dist[src][fst(e)] := dist[src][snd(e)] + 1
+          interval[e] := intersect(interval[pred_e],T(e))
+          insert(e,R)
+        S += pred_e
+    return dist
+\end{lstlisting}
+\caption{An algorithm to compute the lengths of all complete temporal shortest
+paths}
+\label{fig:comp_STP_alg}
+\end{figure}
+
+\begin{proof}
+  The inductive proof follows by the proof of BFS and the definition of complete
+  shortest path.
+\end{proof}
+
+\section{Fastest Path Algorithms}
+
+These algorithms rely on a slightly different (and more correct) definition of
+fastest temporal path, where the time taken by a path is the absolute value of
+the difference between the latest start time within the active interval of the
+first edge, and the maximum of the start times of all edges.
+
+\begin{figure}[H]
+  \begin{lstlisting}[frame = single]
+  Input : Graph (V,E,T), time[][] entries set to Inf
+  Output : time[][]
+
+  for src in V:
+    R := {(src,src)}
+    S := {}
+    time[src][src] = (-Inf, Inf)
+    while R != {}:
+      pred_e := pop R
+      for e in edge_neighborhood(pred_e):
+        time' : = intersect(T(pred_e),T(e))
+        if (interval != null):
+          (ts,tf) := time'
+          (rs,rf) := time[src][fst e]
+          if rs = -Inf :
+            time[src][snd e] := time'
+          else:
+            if ts > rf:
+              t := (s,ts)
+            else:
+              t := (s,rf)
+            if |t| < |time[src][snd e]|:
+              time[src][snd e] := t
+        insert(e,R)
+      S += pred_e
+    return matrix of the magnitudes of every entry in time
+
+  \end{lstlisting}
+  \caption{An algorithm to compute the times of all consecutive fastest paths}
+  \label{fig:consec_FTP_alg}
+\end{figure}
+
+\begin{proof}
+  The inductive proof follows by the proof of Dijkstras Algorithm replacing the
+  definition of distance with the notion of shortest time.
+\end{proof}
+
+
+\begin{figure}[H]
+  \begin{lstlisting}[frame = single]
+  for src in V:
+    R := {(src,src)}
+    S := {}
+    time[src][src] = (Inf,Inf)
+    while R != {}:
+      pred_e := pop R
+      for e in edge_neighborhood(pred_e):
+        time' := intersect time[src][fst e] T(e)
+        if time' != null
+          if |time'| < |time[src][fst e]|
+            time[src][snd e] := time'
+          else
+            time[src][snd e] := time[src][fst e]
+        insert(e,R)
+      S += pred_e
+    return matrix of the magnitudes of every entry in time
+
+  \end{lstlisting}
+  \caption{An algorithm to compute the times of all complete fastest paths}
+  \label{ref:comp_FTP_alg}
+\end{figure}
+
+\begin{proof}
+  The proof follows from the proof of Dijkstras algorithm, with the appropriate
+  definitional modifications.
+\end{proof}
 \end{document}
