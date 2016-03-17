@@ -77,9 +77,9 @@ Note that there is a direct transformation between undirected temporal graphs an
 directed temporal networks. To go from undirected to directed, for every edge
 $(e_l,e_r) \in E^2$, add edges $e_l \in E$ and $e_r \in E$ to the directed
 network. To go from directed to undirected, if for every $u,v$ pair in the
-directed network, the number of edges of the form $(u,v,t_0,t_f,w)$ is the same
-as the number of edges of the form $(v,u,t_0,t_f,w)$, then pair up these edges;
-otherwise there is no transformation.
+directed network, the number of edges of the form $e = (u,v)$ is the same
+as the number of edges of the form $e' = (v,u)$, with $\T(e) = \T(e')$ and
+ $\W(e) = \W(e')$ then pair up these edges; otherwise there is no transformation.
 
 \begin{defn}
   We will describe a temporal graph as \textbf{unweighted} if every edge in $E$
