@@ -173,9 +173,9 @@ if they did not happen at the same time. This is formally defined below.
 
 \begin{defn}
   \label{defn:cons_temp_path}
-  A \textbf{consecutive temporal path} between $u$ and $v$ is a $v_1,v_n$-path
+  A \textbf{consecutive temporal path} between $u$ and $v$ at time $t$ is a $t,v_1,v_n$-path
   $P = e_1, e_2, \cdots, e_n$ such that for consecutive edges $e_i,e_{i+1} \in P$,
-  $T(e_i) \cap T(e_j) \neq \emptyset$.
+  $T(e_i) \cap T(e_j) \neq \emptyset$, and $t \in T(e_1)$.
 \end{defn}
 
 We will consider the consequences of this definition in the context of different
@@ -228,12 +228,12 @@ difference in `fastest' vs. `shortest' path.
 
   \label{defn:short_fast_path}
 
-  The \textbf{temporal shortest path} between $u$ and $v$ is a consecutive
-  temporal $u,v$-path $P = e_1, \cdots, e_n$ such that that there is no other
+  The \textbf{temporal shortest path} between $u$ and $v$ at time $t$ is a consecutive
+  temporal $t,u,v$-path $P = e_1, \cdots, e_n$ such that that there is no other
   path $u,v$-path $P = e'_1, \cdots, e_m$ where
   \[\sum_{e'_i \in P'} \W(e'_i) < \sum_{e_i \in P} \W(e_i) \]
 
-  The \textbf{temporal fastest path} from $v_1$ to $v_n$ is a consecutive
+  The \textbf{temporal fastest path} from $v_1$ to $v_n$ at time $t$ is a consecutive
   temporal path $v_1,v_2,\cdots,v_n$, with first edge $(v_1,v_2)_{t_1}$ and last
   edge $(v_{n-1},v_n)_{t_{n-1}}$, such that there exists no other
   $u_1,u_2, \cdots, u_m$ with first edge $(u_1,u_2)_{s_1}$, last edge
@@ -273,8 +273,9 @@ lens of contemporaneity for paths. Here we want all edges to have some overlap
 in their time interval.
 
 \begin{defn}
-  A \textbf{complete temporal path} between $u$ and $v$ in a graph $(V,E, \T,\W)$
-  is a $u,v$-path $P \in E$ such that $\bigcap_{e \in P} T(e) \neq \emptyset$.
+  A \textbf{complete temporal path} between $u$ and $v$ at time $t$ in a graph
+  $(V,E, \T,\W)$ is a $u,v$-path $P \in E$ such that
+  $t \in \bigcap_{e \in P} T(e)$.
 \end{defn}
 
 As might be expected, complete temporal paths behave the same way
@@ -318,7 +319,7 @@ not on vertices.
 
 For both
 algorithms we use the matrix \texttt{dist}, which represents a complete mapping
-between pairs of vertices and the distance between them, with the default
+between pairs of vertices and initial time stamp and the distance between them, with the default
 value set to $\infty$. Similarly \texttt{interval} is an array representing the
 union of all edges on the shortest path to each edge, with the default value
 being \texttt{null}. R is a min-heap of edges \texttt{e}, sorted on
@@ -331,24 +332,30 @@ on the edge set. Its also possible to include an adjacency list in the definitio
 of an edge, and have \texttt{edge\_neighborhood} pull it out, giving $O(1)$, but
 requiring precomputation with cost $O(m\log m)$.
 Each algorithm iterates through every vertex, and then in the
-worst case, every edge will enter $R$ at some point. So we have $O(nm\log m)$.
+worst case, every edge will enter $R$ at some point, giving $O(nm \log m)$. Then
+we do this accross all time slices, so we have $O(tnm\log m)$.
 
 \subsection{Consecutive Shortest Path Distance Algorithm}
 
 \begin{figure}[H]
 \begin{lstlisting}[frame=single]
-  Input : Graph (V,E,T), dist[][] entries set to Inf
-  Output : dist[][]
+  Input : Graph (V,E,T), dist[][][] entries set to Inf
+  Output : dist[][][]
 
-  for src in V:
-    R := {(src,src)}
+  for (t,src) in {T(e) | e in E } x V:
+    st_e := (src,src)
+    T(e) := (t,t) # or (t, Inf)?
+    R := {st_e}
     S := {}
-    dist[src][src] = 0
+    dist[t][src][src] = 0
+
     while R != {}:
       pred_e := pop R
       for e in edge_neighborhood(pred_e) - union S R:
-        if (intersect(T(pred_e),T(e)) != null)
-          dist[src][fst(e)] := dist[src][snd(e)] + 1
+        t_int := intersect T(pred_e) T(e)
+        if (t_int != null):
+          dist[t][src][snd e] := min(dist[t][src][fst e] + 1,
+                                        dist[t][src][snd e])
           insert(e,R)
       S += pred_e
     return dist
@@ -363,28 +370,28 @@ paths}
   consecutive shortest path.
 \end{proof}
 
-
 \subsection{Complete Shortest Path Distance Algorithm}
 
 \begin{figure}[H]
 \begin{lstlisting}[frame = single]
-  Input : Graph (V,E,T), dist[][] entries set to Inf
-  Output : dist[][]
+  Input : Graph (V,E,T), dist[][][] entries set to Inf
+  Output : dist[][][]
 
-  for src in V:
+  for (t,src) in {T(e) | e in E } x V:
     R := {(src,src)}
     S := {}
-    interval[] = repeat null |V| times.
-    dist[src][src] = 0
+    interval[t][] = repeat null |V| times.
+    dist[t][src][src] = 0
     while R != {}:
       pred_e := pop R
       for e in edge_neighborhood(pred_e) - union S R:
-        if (intersect(interval[pred_e],T(e)) != null)
-          dist[src][fst(e)] := dist[src][snd(e)] + 1
-          interval[e] := intersect(interval[pred_e],T(e))
+        if (t in intersect(interval[pred_e],T(e))) :
+          dist[t][src][snd e] := min(dist[t][src][fst e] + 1,
+                                        dist[t][src][snd e])
+          interval[t][e] := intersect(interval[pred_e],T(e))
           insert(e,R)
-        S += pred_e
-    return dist
+      S += pred_e
+  return dist
 \end{lstlisting}
 \caption{An algorithm to compute the lengths of all complete temporal shortest
 paths}
@@ -401,36 +408,33 @@ paths}
 These algorithms rely on a slightly different (and more correct) definition of
 fastest temporal path, where the time taken by a path is the absolute value of
 the difference between the latest start time within the active interval of the
-first edge, and the maximum of the start times of all edges.
+first edge, and the maximum of the start times of all edges. In the following
+algorithm, the lower bound is fixed by the initial starting time, so all we care
+about is the upper bound on the interval, because the time a $t,u,v$-path takes
+is the upper bound of the interval taken by all of the paths less $t$.
 
 \begin{figure}[H]
   \begin{lstlisting}[frame = single]
-  Input : Graph (V,E,T), time[][] entries set to Inf
-  Output : time[][]
+  Input : Graph (V,E,T), time[][][] entries set to Inf
+  Output : time[][][]
 
-  for src in V:
+  for (t,src) in {T(e) | e in E } x V:
     R := {(src,src)}
     S := {}
-    time[src][src] = (-Inf, Inf)
+    time[t][src][src] = t # or Inf ?
     while R != {}:
       pred_e := pop R
       for e in edge_neighborhood(pred_e):
-        time' : = intersect(T(pred_e),T(e))
-        if (interval != null):
-          (ts,tf) := time'
-          (rs,rf) := time[src][fst e]
-          if rs = -Inf :
-            time[src][snd e] := time'
-          else:
-            if ts > rf:
-              t := (s,ts)
-            else:
-              t := (s,rf)
-            if |t| < |time[src][snd e]|:
-              time[src][snd e] := t
-        insert(e,R)
+        t_int : = intersect T(pred_e),T(e)
+        if t_int != null:
+          (rs,rf) := time[t][src][fst e]
+          tau := (fst time[t][src][fst e],
+                    max(fst t_int, snd time[t][src][fst e]))
+          if |tau| < |time[t][src][snd e]|:
+            time[t][src][snd e] := tau
+          insert(e,R)
       S += pred_e
-    return matrix of the magnitudes of every entry in time
+  return the matrix of magnitudes for every entry in time
 
   \end{lstlisting}
   \caption{An algorithm to compute the times of all consecutive fastest paths}
@@ -445,22 +449,23 @@ first edge, and the maximum of the start times of all edges.
 
 \begin{figure}[H]
   \begin{lstlisting}[frame = single]
-  for src in V:
+  Input : Graph (V,E,T), time[][][] entries set to Inf
+  Output : time[][][]
+
+  for (t,src) in {T(e) | e in E } x V:
     R := {(src,src)}
     S := {}
-    time[src][src] = (Inf,Inf)
+    time[t][src][src] = Inf
     while R != {}:
       pred_e := pop R
       for e in edge_neighborhood(pred_e):
-        time' := intersect time[src][fst e] T(e)
-        if time' != null
-          if |time'| < |time[src][fst e]|
-            time[src][snd e] := time'
-          else
-            time[src][snd e] := time[src][fst e]
-        insert(e,R)
+        t_int := intersect time[t][src][fst e] T(e)
+        if t_int != null :
+          if snd t_int < time[t][src][snd e]:
+            time[t][src][snd e] := snd t_int
+          insert(e,R)
       S += pred_e
-    return matrix of the magnitudes of every entry in time
+  return subtract appropriate value of t for every entry in time
 
   \end{lstlisting}
   \caption{An algorithm to compute the times of all complete fastest paths}
