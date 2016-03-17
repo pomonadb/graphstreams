@@ -79,13 +79,9 @@ continue our research.
 With this generalized definition of a temporal network, we will begin to explain
 some common, specialized descriptors of these networks:
 
-Note that there is a direct transformation between undirected temporal graphs
-and directed temporal networks. To go from undirected to directed, for every
-edge $(e_l,e_r) \in E^2$, add edges $e_l \in E$ and $e_r \in E$ to the directed
-network. To go from directed to undirected, if for every $u,v$ pair in the
-directed network, the number of edges of the form $(u,v,t_0,t_f,w)$ is the same
-as the number of edges of the form $(v,u,t_0,t_f,w)$, then pair up these edges;
-otherwise there is no transformation.
+Note that there is a direct transformation between undirected temporal graphs and
+directed temporal networks. Simply remove the direction of the edges, i.e. make
+the ordered pairs unordered.  This is called the \textbf{underlying graph}.
 
 \begin{defn}
   We will describe a temporal graph as \textbf{unweighted} if every edge in $E$
