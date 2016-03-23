@@ -60,7 +60,7 @@ continue our research.
   if $(u,v) \in E$ is an ordered pair, and is \textbf{undirected} if unordered.
 
   $\T$ is a function $\T : E \to \Z^2$ with the co-domain being the start and
-  end times of the vertices, in number of time units (you can always pick a
+  end times of the edges, in number of time units (you can always pick a
   smaller time unit so that the bounds of this interval are integral). Note that
   forall $e \in E$ with $\T(e) = (t_s, t_f)$, $t_s \leq t_f$. In a
   \textbf{static} graph, where $\T(e) = (\infty, \infty)$ for all $e \in E$,
@@ -73,7 +73,7 @@ continue our research.
   All edges are to be treated as directed edges with some weight $\W$ and
   time-window $\T$ (possibly instantaneous) in which they are \textit{active}.
   Additionally, we will maintain the standard definitions of \textit{size} and
-  \textit{order} defined respectively: $|E| = m$,  $|V| = n$.
+  \textit{order} defined respectively: $|E|$,  $|V|$.
 \end{defn}
 
 With this generalized definition of a temporal network, we will begin to explain
@@ -270,7 +270,7 @@ in their time interval.
 
 \begin{defn}
   A \textbf{complete temporal path} between $u$ and $v$ at time $t$ in a graph
-  $(V,E, \T,\W)$ is a $u,v$-path $P \in E$ such that
+  $(V,E, \T,\W)$ is a $u,v$-path $P \subset E$ such that
   $t \in \bigcap_{e \in P} T(e)$.
 \end{defn}
 
