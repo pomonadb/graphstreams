@@ -1,6 +1,6 @@
 \documentclass{article}
-
-\usepackage{amsmath,amsthm,amssymb,tikz,float}
+\usepackage[ruled, linesnumbered]{algorithm2e}
+\usepackage{amsmath, amsthm, amssymb, tikz, float}
 
 \usepackage{listings}
 \lstset{
@@ -333,33 +333,38 @@ we do this accross all time slices, so we have $O(tnm\log m)$.
 
 \subsection{Consecutive Shortest Path Distance Algorithm}
 
-\begin{figure}[H]
-\begin{lstlisting}[frame=single]
-  Input : Graph (V,E,T), dist[][][] entries set to Inf
-  Output : dist[][][]
-
-  for (t,src) in {T(e) | e in E } x V:
-    st_e := (src,src)
-    T(e) := (t,t) # or (t, Inf)?
-    R := {st_e}
-    S := {}
-    dist[t][src][src] = 0
-
-    while R != {}:
-      pred_e := pop R
-      for e in edge_neighborhood(pred_e) - union S R:
-        t_int := intersect T(pred_e) T(e)
-        if (t_int != null):
-          dist[t][src][snd e] := min(dist[t][src][fst e] + 1,
-                                        dist[t][src][snd e])
-          insert(e,R)
-      S += pred_e
-    return dist
-\end{lstlisting}
-\caption{An algorithm to compute the lengths of all consecutive temporal shortest
-paths}
+\begin{algorithm}[H]
+\SetAlgoLined
+\KwIn{A temporal graph $G = (V, E, T)$ and $dist$ which encapsulates
+  a complete mapping between pairs of vertices along with an initial timestamp
+  to the distance between them, with the default values set to $\infty$.}
+\KwOut{The algorithm outputs $dist$ such that
+  $dist[t][v_{src}][v_{dest}] = d$ where $d$ is the (shortest consecutive path)
+  distance from node $v_{src}$ to node $v_{dest}$ such that time $t$ intersects the time
+  interval of the first edge in the path.}
+  \ForEach(//loop over nodes in time slices){
+    time, start node pair $(t, v_{src})$ in $\mathcal{T} \times V$
+  }{
+    Let $e_{src} = (v_{src}, v_{src})$\;
+    Let shortest interval be $T(e_{src}) = (t, t)$\;
+    Let the reached edges min-heap $R = \{e_{src}\}$\;
+    Let the searched edges $S = \varnothing$\;
+    Let $dist[t][v_{src}][v_{src}] = 0$\;
+    \While{$R \neq \varnothing$}{
+      Let $e_{pred} = pop(R)$\;
+      Insert $e_{pred}$ into $S$\;
+      \ForEach{$e_{succ} = (u,v) \in N_{e_{pred}}(v) - S \cup R$}{
+        \If{$T(e_{pred}) \cap T(e_{succ}) \neq \varnothing$}{
+          Let $dist[t][v_{src}][v] = min(dist[t][v_{src}][u] + 1, dist[t][v_{src}][v])$\;
+          Insert $e_{succ}$ into $R$\;
+        }
+      }
+    }
+  }
+  \Return{dist}\;
+ \caption{Consecutive Shortest Path Distance Algorithm}
 \label{fig:consec_STP_alg}
-\end{figure}
+\end{algorithm}
 
 \begin{proof}
   The inductive proof follows by the proof of BFS and the definition of
@@ -368,108 +373,10 @@ paths}
 
 \subsection{Complete Shortest Path Distance Algorithm}
 
-\begin{figure}[H]
-\begin{lstlisting}[frame = single]
-  Input : Graph (V,E,T), dist[][][] entries set to Inf
-  Output : dist[][][]
-
-  for (t,src) in {T(e) | e in E } x V:
-    R := {(src,src)}
-    S := {}
-    interval[t][] = repeat null |V| times.
-    dist[t][src][src] = 0
-    while R != {}:
-      pred_e := pop R
-      for e in edge_neighborhood(pred_e) - union S R:
-        if (t in intersect(interval[pred_e],T(e))) :
-          dist[t][src][snd e] := min(dist[t][src][fst e] + 1,
-                                        dist[t][src][snd e])
-          interval[t][e] := intersect(interval[pred_e],T(e))
-          insert(e,R)
-      S += pred_e
-  return dist
-\end{lstlisting}
-\caption{An algorithm to compute the lengths of all complete temporal shortest
-paths}
-\label{fig:comp_STP_alg}
-\end{figure}
-
-\begin{proof}
-  The inductive proof follows by the proof of BFS and the definition of complete
-  shortest path.
-\end{proof}
-
 \section{Fastest Path Algorithms}
 
-These algorithms rely on a slightly different (and more correct) definition of
-fastest temporal path, where the time taken by a path is the absolute value of
-the difference between the latest start time within the active interval of the
-first edge, and the maximum of the start times of all edges. In the following
-algorithm, the lower bound is fixed by the initial starting time, so all we care
-about is the upper bound on the interval, because the time a $t,u,v$-path takes
-is the upper bound of the interval taken by all of the paths less $t$.
+\subsection{Consecutive Fastest Path Distance Algorithm}
 
-\begin{figure}[H]
-  \begin{lstlisting}[frame = single]
-  Input : Graph (V,E,T), time[][][] entries set to Inf
-  Output : time[][][]
+\subsection{Complete Fastest Path Algorithm}
 
-  for (t,src) in {T(e) | e in E } x V:
-    R := {(src,src)}
-    S := {}
-    time[t][src][src] = t # or Inf ?
-    while R != {}:
-      pred_e := pop R
-      for e in edge_neighborhood(pred_e):
-        t_int : = intersect T(pred_e),T(e)
-        if t_int != null:
-          (rs,rf) := time[t][src][fst e]
-          tau := (fst time[t][src][fst e],
-                    max(fst t_int, snd time[t][src][fst e]))
-          if |tau| < |time[t][src][snd e]|:
-            time[t][src][snd e] := tau
-          insert(e,R)
-      S += pred_e
-  return the matrix of magnitudes for every entry in time
-
-  \end{lstlisting}
-  \caption{An algorithm to compute the times of all consecutive fastest paths}
-  \label{fig:consec_FTP_alg}
-\end{figure}
-
-\begin{proof}
-  The inductive proof follows by the proof of Dijkstras Algorithm replacing the
-  definition of distance with the notion of shortest time.
-\end{proof}
-
-
-\begin{figure}[H]
-  \begin{lstlisting}[frame = single]
-  Input : Graph (V,E,T), time[][][] entries set to Inf
-  Output : time[][][]
-
-  for (t,src) in {T(e) | e in E } x V:
-    R := {(src,src)}
-    S := {}
-    time[t][src][src] = Inf
-    while R != {}:
-      pred_e := pop R
-      for e in edge_neighborhood(pred_e):
-        t_int := intersect time[t][src][fst e] T(e)
-        if t_int != null :
-          if snd t_int < time[t][src][snd e]:
-            time[t][src][snd e] := snd t_int
-          insert(e,R)
-      S += pred_e
-  return subtract appropriate value of t for every entry in time
-
-  \end{lstlisting}
-  \caption{An algorithm to compute the times of all complete fastest paths}
-  \label{ref:comp_FTP_alg}
-\end{figure}
-
-\begin{proof}
-  The proof follows from the proof of Dijkstras algorithm, with the appropriate
-  definitional modifications.
-\end{proof}
 \end{document}
