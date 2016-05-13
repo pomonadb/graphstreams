@@ -1,6 +1,7 @@
 \documentclass{article}
 \usepackage[ruled, linesnumbered]{algorithm2e}
-\usepackage{amsmath, amsthm, amssymb, tikz, float}
+\usepackage{amsmath, amsthm, amssymb, tikz, float, todonotes}
+\usepackage{mdframed}
 
 \usepackage{listings}
 \lstset{
@@ -21,7 +22,9 @@
 
 \newcommand{\W}{\mathcal{W}}
 \newcommand{\Z}{\mathbb{Z}}
+\renewcommand{\P}[1]{\mathbb{P}\left( #1 \right)}
 \newcommand{\T}{\text{T}}
+\newcommand{\TT}{\mathcal{T}}
 
 
 
@@ -59,7 +62,7 @@ continue our research.
   vertices, and $E \subset V^2$ is the set of edges. A graph is \textbf{directed}
   if $(u,v) \in E$ is an ordered pair, and is \textbf{undirected} if unordered.
 
-  $\T$ is a function $\T : E \to \Z^2$ with the co-domain being the start and
+  $\T$ is a function $\T : E \to \TT^2$ with the co-domain being the start and
   end times of the vertices, in number of time units (you can always pick a
   smaller time unit so that the bounds of this interval are integral). Note that
   forall $e \in E$ with $\T(e) = (t_s, t_f)$, $t_s \leq t_f$. In a
@@ -70,10 +73,10 @@ continue our research.
   \textbf{unweighted} graph if every edge has the same weight, then we can
   leave $\W$ out of the definition.
 
-  All edges are to be treated as directed edges with some weight $\W$ and
-  time-window $\T$ (possibly instantaneous) in which they are \textit{active}.
-  Additionally, we will maintain the standard definitions of \textit{size} and
-  \textit{order} defined respectively: $|E| = m$,  $|V| = n$.
+  All edges $e \in E$ are to be treated as directed edges with some weight
+  $\W(e)$ and time-window $\T(e)$ (possibly instantaneous) in which they are
+  \textit{active}.  Additionally, we will maintain the standard definitions of
+  \textit{size} and \textit{order} defined respectively: $|E| = m$, $|V| = n$.
 \end{defn}
 
 With this generalized definition of a temporal network, we will begin to explain
@@ -343,7 +346,7 @@ we do this accross all time slices, so we have $O(tnm\log m)$.
   distance from node $v_{src}$ to node $v_{dest}$ such that time $t$ intersects the time
   interval of the first edge in the path.}
   \ForEach(//loop over nodes in time slices){
-    time, start node pair $(t, v_{src})$ in $\mathcal{T} \times V$
+    time, start node pair $(t, v_{src})$ in $\TT \times V$
   }{
     Let $e_{src} = (v_{src}, v_{src})$\;
     Let shortest interval be $T(e_{src}) = (t, t)$\;
@@ -371,12 +374,90 @@ we do this accross all time slices, so we have $O(tnm\log m)$.
   consecutive shortest path.
 \end{proof}
 
+\begin{mdframed}
+\subsubsection{Improvements}
+
+Now we can consider several improvements on the existing algorithm.  The first
+is to define $V_t \subseteq V$, the active vertices at time $t \in \T$ (recall
+that a vertex $v$ is active at a time $t$ if and only if there is an edge $e$
+incident to $v$ such that $t \in T(e)$.  This will cut down significantly on the
+number of neighborhood queries that will return empty, instead choosing to focus
+on those that will return results.
+
+We can also consider a slightly different model for this algorithm, considering
+these map $dist$ to be a matrix (or equivalently a database table) and then
+introducing a temporal adjacency matrix.
+
+\begin{defn}
+  For a temporal graph $G = (V, E, \T)$, where $V$ is the vertex set, $E$ is the
+  edge set, and $\T : E \to \TT^2$ is the temporal activity function.  Let
+  $A_\TT = \left(a_{uv}\right) \in M_n(\P{\TT^2})$ be the
+  temporal adjacency matrix of $G$, where $a_{uv}$ is the set of all pairs of
+  start and end times such that there is an edge bewteen $u$ and $v$.
+  \todo[inline]{It's possible that $A_\TT \in M_n(\TT^2)$, but I'm not certain
+    whether we want this to exist only at time $t \in \TT$, or if we want this
+    to be a universal matrix}
+
+  For example, in a graph $G = (V,E,\T)$, say that for vertices $u_0,v_0 \in V$,
+  there are edges $e_1,e_2,e_3$ with $u_0$ and $v_0$ as endpoints, such that
+  $\T(e_1) = (s_1,t_1)$, $\T(e_2) = (s_2,t_2)$, $\T(e_3) = (s_3,t_3)$, and
+  $\T(e_1) \cap T(e_3) \neq \emptyset$, then the entry $a_{u_0,v_0}$ of $A_\TT$
+  is $\{(\T(e_1) \cup \T(e_3)),\T(e_2)\}$.
+\end{defn}
+
+We can use this temporal adjacency matrix along with a tentative version of the 
+$dist$ matrix, to calculate the paths of length $l$ or starting from any vertex.
+
+\begin{defn}
+  The tentative distance matrix $\tau_t \in M_N(\Z \times\P{\TT^2})$ is used in
+  the iteration of the algorithm to hold the tentative distance between two
+  vertices and the set of broadest active windows for the path.
+\end{defn}
+
+We can use these structures to define a more efficient algorithm (which may
+  in fact be the same algorithm)
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\KwIn{A temporal graph $G = (V, E, T)$ and $\tau$ which encapsulates
+  a complete mapping between pairs of vertices along with an initial timestamp
+  to the distance between them, with the default values set to $\emptyset$, and a 
+  length $l$ which specifies the max distance to search.}
+\KwOut{The algorithm outputs $\tau$ such that
+  $dist[t][v_{src}][v_{dest}] = d$ where $d$ is the (shortest consecutive path)
+  distance from node $v_{src}$ to node $v_{dest}$ such that time $t$ intersects the time
+  interval of the first edge in the path.}
+  \ForEach(//loop over nodes in time slices){
+    time, start node pair $(t, v_{src})$ in $\TT \times V_t$
+  }{
+    \For{ $i = 0$ \KwTo $l$  }{
+      \ForAll(the non-null entries in the row)
+      {$(d_0, (I_u)) \in \tau_t[v_{src}]$ at vertex $u$}{
+        \ForAll{$I, I_u \cap I \neq \emptyset, I \in A_\TT[v_{src}][u]$}{
+          $\tau_t[t_0][v_{src}][u] = (d_0 + 1, I_u \cap I)$\;
+        }
+      }
+    }
+  }
+  dist := $\tau$ \;
+  \Return{dist}\;
+ \caption{Consecutive Shortest Path Distance Algorithm}
+\label{fig:matrix_consec_STP_alg}
+\end{algorithm}
+
+
+\end{mdframed}
+
+
 \subsection{Complete Shortest Path Distance Algorithm}
+\todo[inline]{Complete SP Distance}
 
 \section{Fastest Path Algorithms}
 
 \subsection{Consecutive Fastest Path Distance Algorithm}
+\todo[inline]{Consec FP Distance}
 
 \subsection{Complete Fastest Path Algorithm}
+\todo[inline]{Complete FP Distance}
 
 \end{document}
