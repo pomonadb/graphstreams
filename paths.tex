@@ -380,23 +380,25 @@ we do this accross all time slices, so we have $O(tnm\log m)$.
 Now we can consider several improvements on the existing algorithm.  The first
 is to define $V_t \subseteq V$, the active vertices at time $t \in \T$ (recall
 that a vertex $v$ is active at a time $t$ if and only if there is an edge $e$
-incident to $v$ such that $t \in T(e)$.  This will cut down significantly on the
+incident to $v$ such that $t \in T(e)$).  This will cut down significantly on the
 number of neighborhood queries that will return empty, instead choosing to focus
 on those that will return results.
 
-We can also consider a slightly different model for this algorithm, considering
-these map $dist$ to be a matrix (or equivalently a database table) and then
-introducing a temporal adjacency matrix.
+We can also consider a slightly different model for this algorithm,
+considering the map $dist$ to be a database table with B+ indices
+(which will be represented more simply by matrix and then introducing
+a temporal adjacency matrix (DB table).
 
 \begin{defn}
-  For a temporal graph $G = (V, E, \T)$, where $V$ is the vertex set, $E$ is the
-  edge set, and $\T : E \to \TT^2$ is the temporal activity function.  Let
-  $A_\TT = \left(a_{uv}\right) \in M_n(\P{\TT^2})$ be the
-  temporal adjacency matrix of $G$, where $a_{uv}$ is the set of all pairs of
-  start and end times such that there is an edge bewteen $u$ and $v$.
-  \todo[inline]{It's possible that $A_\TT \in M_n(\TT^2)$, but I'm not certain
-    whether we want this to exist only at time $t \in \TT$, or if we want this
-    to be a universal matrix}
+  For a temporal graph $G = (V, E, \T)$, where $V$ is the vertex set,
+  $E$ is the edge set, and $\T : E \to \TT^2$ is the temporal activity
+  function.  Let $A_\TT = \left(a_{uv}\right) \in M_n(\P{\TT^2})$ be
+  the \textbf{temporal adjacency matrix} of $G$, where $a_{uv}$ is the
+  set of all pairs of start and end times such that there is an edge
+  bewteen $u$ and $v$.  \todo[inline]{It's possible that we really
+    want $A_t \in M_n(\TT^2)$ for $t \in \TT$, but I'm not certain
+    whether we want this matrix to exist only at time $t \in \TT$, or
+    if we want this to be a time-agnostic matrix}
 
   For example, in a graph $G = (V,E,\T)$, say that for vertices $u_0,v_0 \in V$,
   there are edges $e_1,e_2,e_3$ with $u_0$ and $v_0$ as endpoints, such that
@@ -427,16 +429,26 @@ We can use these structures to define a more efficient algorithm (which may
   $dist[t][v_{src}][v_{dest}] = d$ where $d$ is the (shortest consecutive path)
   distance from node $v_{src}$ to node $v_{dest}$ such that time $t$ intersects the time
   interval of the first edge in the path.}
-  \ForEach(//loop over nodes in time slices){
+  \ForEach{
     time, start node pair $(t, v_{src})$ in $\TT \times V_t$
   }{
-    \For{ $i = 0$ \KwTo $l$  }{
-      \ForAll(the non-null entries in the row)
-      {$(d_0, (I_u)) \in \tau_t[v_{src}]$ at vertex $u$}{
-        \ForAll{$I, I_u \cap I \neq \emptyset, I \in A_\TT[v_{src}][u]$}{
-          $\tau_t[t_0][v_{src}][u] = (d_0 + 1, I_u \cap I)$\;
-        }
+    Let $R$ := $\{v_{src}\}$\;
+    Let $S$ := $\emptyset$\;
+    \ForEach{$u \in R$}{
+      \ForEach{$(d, I_{v_{src},u}) \in \tau_t[v_{src}][u]$}{
+         Let $S_I$ := $A_\TT[u]$\;
+         \ForEach{$I \in S_I$ at vertex $u$}{
+           \ForEach{$i \in I$}{
+             \If{$i \cap I_{v_{src},u}$}{
+               $\tau_t[v_{src}][u']$ \texttt{+=} $(d,i)$ \;
+               \If{$d+1 < l$}{
+                  $R$ \texttt{+=} $u'$ \;
+               }
+             }
+           }
+         }
       }
+      $S$ \texttt{+=} $u$\;
     }
   }
   dist := $\tau$ \;
@@ -445,6 +457,16 @@ We can use these structures to define a more efficient algorithm (which may
 \label{fig:matrix_consec_STP_alg}
 \end{algorithm}
 
+The efficiency of this is
+$O(tln^{\log_{\Delta G}n}\log^3(m)) = O(tlnlog^3(m))$, so it seems
+that this algorithm, in fact, fares similarly to the previous one,
+Solely dependent on whether  
+
+Unfortunately, this is still doing a bunch of double counting, and we
+want to find a way, so that when we get to a node $v$ from time $t$
+for which we have calculated a distance tree in $t - 1$, and $t$
+intersects with the active interval of the subtree, we can skip that
+subtree.
 
 \end{mdframed}
 
