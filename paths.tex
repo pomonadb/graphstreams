@@ -458,7 +458,7 @@ We can use these structures to define a more efficient algorithm (which may
 \end{algorithm}
 
 The efficiency of this is
-$O(tln^{\log_{\Delta G}n}\log^3(m)) = O(tlnlog^3(m))$, so it seems
+$O(ltn^{\log_{\Delta G}n}\log^3m) = O(ltn\log^3m)$, so it seems
 that this algorithm, in fact, fares similarly to the previous one,
 Solely dependent on whether  
 
@@ -466,9 +466,97 @@ Unfortunately, this is still doing a bunch of double counting, and we
 want to find a way, so that when we get to a node $v$ from time $t$
 for which we have calculated a distance tree in $t - 1$, and $t$
 intersects with the active interval of the subtree, we can skip that
-subtree.
+subtree.  One way to do this is by running dijkstra on the
+co-incidence graph.
 
-This means that for every 
+\begin{defn}
+  For a temporal graph $G = (V,E,T)$, its \textbf{coincidence graph},
+  $C_G = (E,\mathcal{E})$, with $\mathcal{E} \subseteq E^2$ is a
+  simple graph where the edges of $G$ become nodes of $C_G$, and there
+  is an edge between two nodes exactly when they share an incident
+  vertex in $C_G$. Symbolically, for two edges $e = uv, f = wz$ in the
+  graph $G$, there is an edge $ef \in \mathcal{E}$ in the graph $C_G$
+  if and only if $\{u,v\}\cap \{w,z\} \neq \emptyset$.
+\end{defn}
+
+The great thing about this coincidence matrix is that it is simply
+another way of looking at existing data, and doesn't require addtional
+computation to create. This gives rise to another version of this
+algorithm. It actually requires two steps.  The first is to run
+dijkstra on $C_G \cap I_G$, so that the edges are co-incident and
+contemporary (we won't actually pre-compute this graph, but we'll do
+it as we go, to allow for one(ish) pass). 
+ 
+
+\begin{algorithm}[H]
+  \SetAlgoLined 
+
+  \KwIn{A temporal graph $G = (V, E, T)$ and $e\_dist$ which
+    encapsulates a complete mapping from pairs of edges to the
+    distance between them, with the default value set to $\infty$}
+
+  \KwOut{The algorithm outputs $e\_dist$ such that
+    $e\_dist[e_{src}][e_{dest}]$ is the distance between $e_{src}$ and
+    $e_{dest}$ in $C_G$.}  
+
+  \ForEach{$e_{src} \in E$}{
+    Let $R$ := $\{e_{src}\}$\;
+    Let $S$ := $\emptyset$\;
+    Let $e\_dist[e_{src}][e_{src}]$ := $0$\;
+    \While{$R \neq \emptyset$}{
+      Let $e$ := pop $R$\;
+      $S$ \texttt{+=} $e$\;
+      \ForEach{$f \in N(e) - (S \cup R)$}{
+        \If{$T(e) \cap T(f) \neq \emptyset$}{
+          $e\_dist[e_{src}][f]$ := $e\_dist[e_{src}][e] + 1$\;
+          $R$ \texttt{+=} $f$\;
+        }
+      }
+    }
+  }
+  \Return{e\_dist}\;
+ \caption{Shortest Edge-Distance Algorithm}
+\label{fig:edge_consec_BFS}
+\end{algorithm}
+
+The above algorithm is simply a BFS so it has worst-case time
+complexity described by $O(|E| + |\mathcal{E}|)$.
+
+Once this step has completed, we must convert this intermediate
+result, the shortest paths on $C_G$, to the one we are searching for,
+the shortest paths on $G$. To do this, for every pair of vertices,
+find the smallest distance in $C_G$ between the incident edges, and
+add one, we see this in Algorithm~\ref{fig:edge_to_dist_alg}
+
+\begin{algorithm}[H]
+  \SetAlgoLined
+  
+  \KwIn{A graph $G = (V,E,T)$, where $T : E \to \TT$ and the
+    precomputed map $e\_dist$ describing the distances between all
+    vertices in $C_G = (E, \mathcal E)$.}
+  
+  \KwOut{The map $dist$ describing the distances between all pairs of
+    vertices at every time slice. }
+
+
+  \ForEach{$(t,u,v) \in \TT \times V_t \times V$}{
+    $d_e := \min\{e\_dist[e][f] | e \in N_E(u), f \in
+    N_E(v), t \in T(e)\}$ \;
+    $dist[t][u][v] :=  d_e + 1$ \;
+  }
+  \Return{dist}\;
+  \caption{Edge-Distance to Distance}
+  \label{fig:edge_to_dist_alg}
+\end{algorithm}
+
+This has the higher complexity, and is $O(tn^2\Delta^2)$, where
+$\Delta$ is the maximum degree of $G$.
+
+So the overall time complexity of algorithms \ref{fig:edge_consec_BFS}
+and \ref{fig:edge_to_dist_alg} composed is
+$O(tn^2\Delta^2 + m + |\mathcal{E}|) = O(tn^2\Delta^2 +
+|\mathcal{E}|)$, and for a sparse graph $O(tn^2)$.
+
 
 
 \end{mdframed}
