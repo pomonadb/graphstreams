@@ -26,7 +26,7 @@
 \newcommand{\T}{\text{T}}
 \newcommand{\TT}{\mathcal{T}}
 
-
+\renewcommand{\and}{\wedge}
 
 \title{Temporal Graphs Research at Pomona College\\
   \textit{Working Definitions and Vocabulary}
@@ -420,84 +420,71 @@ We can use these structures to define a more efficient algorithm (which may
   in fact be the same algorithm)
 
 \begin{algorithm}[H]
-\SetAlgoLined
-\KwIn{A temporal graph $G = (V, E, T)$ and $\tau$ which encapsulates
-  a complete mapping between pairs of vertices along with an initial timestamp
-  to the distance between them, with the default values set to $\emptyset$, and a 
-  length $l$ which specifies the max distance to search.}
-\KwOut{The algorithm outputs $\tau$ such that
-  $dist[t][v_{src}][v_{dest}] = d$ where $d$ is the (shortest consecutive path)
-  distance from node $v_{src}$ to node $v_{dest}$ such that time $t$ intersects the time
-  interval of the first edge in the path.}
-  \ForEach{
-    time, start node pair $(t, v_{src})$ in $\TT \times V_t$
-  }{
-    Let $R$ := $\{v_{src}\}$\;
-    Let $S$ := $\emptyset$\;
-    \ForEach{$u \in R$}{
-      \ForEach{$(d, I_{v_{src},u}) \in \tau_t[v_{src}][u]$}{
-         Let $S_I$ := $A_\TT[u]$\;
-         \ForEach{$I \in S_I$ at vertex $u$}{
-           \ForEach{$i \in I$}{
-             \If{$i \cap I_{v_{src},u}$}{
-               $\tau_t[v_{src}][u']$ \texttt{+=} $(d,i)$ \;
-               \If{$d+1 < l$}{
-                  $R$ \texttt{+=} $u'$ \;
-               }
-             }
-           }
-         }
-      }
-      $S$ \texttt{+=} $u$\;
+  \SetAlgoLined 
+
+  \KwIn{The Adjacency matrix $A$ of a temporal graph $G = (E,V,\T)$, its interval
+    function $\T : E \to \TT$, and the codomain of $\T$, $\TT$.}
+
+  \KwOut{The algorithm outputs $\tau$ such that $dist[t][v_{src}][v_{dest}] = d$
+    where $d$ is the (shortest consecutive path) distance from node $v_{src}$ to
+    node $v_{dest}$ such that time $t$ intersects the time interval of the first
+    edge in the path.}
+
+  \ForEach{$t \in [\TT]$}{
+    \textsc{insert} $A$ into $D$ with $b = 1$ \;
+
+    Let $D_l$ for $l \in [b]$ represent $\sigma_{b = l} D$ \;
+
+    \ForEach{ $l = 1,2, \cdots, b$ }{
+
+      Let $C_1$ := $(D_l.s, D_l.t) \cap (D_1.s, D_1.t)$\;
+      Let $C_2$ := $D_l.target = D_l.source$\;
+      Let $C_3$ := $ D_l.dist + D_1.dist \leq l $\;
+
+      Then, Let $C$ := $\displaystyle\bigwedge_{i = 1}^3 C_i$\;
+
+      Let $D'$ be
+      $\textsc{update}_{dist = D_l.dist + D_1.dist } \left(D_l \bowtie_C
+        D_1\right)$\;
+      
+      \textsc{insert} $D'$ into $D$\;
     }
   }
-  dist := $\tau$ \;
-  \Return{dist}\;
  \caption{Consecutive Shortest Path Distance Algorithm}
-\label{fig:matrix_consec_STP_alg}
+\label{fig:join_consec_STP_alg}
 \end{algorithm}
 
-The efficiency of this is
-$O(ltn^{\log_{\Delta G}n}\log^3m) = O(ltn\log^3m)$, so it seems
-that this algorithm, in fact, fares similarly to the previous one,
-Solely dependent on whether  
-
-Unfortunately, this is still doing a bunch of double counting, and we
-want to find a way, so that when we get to a node $v$ from time $t$
-for which we have calculated a distance tree in $t - 1$, and $t$
-intersects with the active interval of the subtree, we can skip that
-subtree.  One way to do this is by running dijkstra on the
-co-incidence graph.
+The worst-case time and space complexity this is $O(tm^{\Delta l})$. However, in
+a sparse graph we see that it is bounded by $O(tn^2)$. The efficiency of this
+algorithm really relies on the efficiency of the join operation. 
 
 \begin{defn}
   For a temporal graph $G = (V,E,T)$, its \textbf{coincidence graph},
-  $C_G = (E,\mathcal{E})$, with $\mathcal{E} \subseteq E^2$ is a
-  simple graph where the edges of $G$ become nodes of $C_G$, and there
-  is an edge between two nodes exactly when they share an incident
-  vertex in $C_G$. Symbolically, for two edges $e = uv, f = wz$ in the
-  graph $G$, there is an edge $ef \in \mathcal{E}$ in the graph $C_G$
-  if and only if $\{u,v\}\cap \{w,z\} \neq \emptyset$.
+  $C_G = (E,\mathcal{E})$, with $\mathcal{E} \subseteq E^2$ is a simple graph
+  where the edges of $G$ become nodes of $C_G$, and there is an edge between two
+  nodes exactly when they share an incident vertex in $C_G$. Symbolically, for
+  two edges $e = uv, f = wz$ in the graph $G$, there is an edge
+  $ef \in \mathcal{E}$ in the graph $C_G$ if and only if
+  $\{u,v\}\cap \{w,z\} \neq \emptyset$.
 \end{defn}
 
-The great thing about this coincidence matrix is that it is simply
-another way of looking at existing data, and doesn't require addtional
-computation to create. This gives rise to another version of this
-algorithm. It actually requires two steps.  The first is to run
-dijkstra on $C_G \cap I_G$, so that the edges are co-incident and
-contemporary (we won't actually pre-compute this graph, but we'll do
-it as we go, to allow for one(ish) pass). 
+The great thing about this coincidence matrix is that it is simply another way
+of looking at existing data, and doesn't require addtional computation to
+create. This gives rise to another version of this algorithm. It actually
+requires two steps.  The first is to run dijkstra on $C_G \cap I_G$, so that the
+edges are co-incident and contemporary (we won't actually pre-compute this
+graph, but we'll do it as we go, to allow for one(ish) pass).
  
 
 \begin{algorithm}[H]
   \SetAlgoLined 
 
-  \KwIn{A temporal graph $G = (V, E, T)$ and $e\_dist$ which
-    encapsulates a complete mapping from pairs of edges to the
-    distance between them, with the default value set to $\infty$}
+  \KwIn{A temporal graph $G = (V, E, T)$ and $e\_dist$ which encapsulates a
+    complete mapping from pairs of edges to the distance between them, with the
+    default value set to $\infty$}
 
-  \KwOut{The algorithm outputs $e\_dist$ such that
-    $e\_dist[e_{src}][e_{dest}]$ is the distance between $e_{src}$ and
-    $e_{dest}$ in $C_G$.}  
+  \KwOut{The algorithm outputs $e\_dist$ such that $e\_dist[e_{src}][e_{dest}]$
+    is the distance between $e_{src}$ and $e_{dest}$ in $C_G$.}
 
   \ForEach{$e_{src} \in E$}{
     Let $R$ := $\{e_{src}\}$\;
@@ -519,30 +506,29 @@ it as we go, to allow for one(ish) pass).
 \label{fig:edge_consec_BFS}
 \end{algorithm}
 
-The above algorithm is simply a BFS so it has worst-case time
-complexity described by $O(|E| + |\mathcal{E}|)$.
+The above algorithm is simply a BFS so it has worst-case time complexity
+described by $O(|E| + |\mathcal{E}|)$.
 
-Once this step has completed, we must convert this intermediate
-result, the shortest paths on $C_G$, to the one we are searching for,
-the shortest paths on $G$. To do this, for every pair of vertices,
-find the smallest distance in $C_G$ between the incident edges, and
-add one, we see this in Algorithm~\ref{fig:edge_to_dist_alg}
+Once this step has completed, we must convert this intermediate result, the
+shortest paths on $C_G$, to the one we are searching for, the shortest paths on
+$G$. To do this, for every pair of vertices, find the smallest distance in $C_G$
+between the incident edges, and add one, we see this in
+Algorithm~\ref{fig:edge_to_dist_alg}
 
 \begin{algorithm}[H]
   \SetAlgoLined
   
-  \KwIn{A graph $G = (V,E,T)$, where $T : E \to \TT$ and the
-    precomputed map $e\_dist$ describing the distances between all
-    vertices in $C_G = (E, \mathcal E)$.}
+  \KwIn{A graph $G = (V,E,T)$, where $T : E \to \TT$ and the precomputed map
+    $e\_dist$ describing the distances between all vertices in
+    $C_G = (E, \mathcal E)$.}
   
-  \KwOut{The map $dist$ describing the distances between all pairs of
-    vertices at every time slice. }
+  \KwOut{The map $dist$ describing the distances between all pairs of vertices
+    at every time slice. }
 
 
   \ForEach{$(t,u,v) \in \TT \times V_t \times V$}{
-    $d_e := \min\{e\_dist[e][f] | e \in N_E(u), f \in
-    N_E(v), t \in T(e)\}$ \;
-    $dist[t][u][v] :=  d_e + 1$ \;
+    $d_e := \min\{e\_dist[e][f] | e \in N_E(u), f \in N_E(v), t \in T(e)\}$ \;
+    $dist[t][u][v] := d_e + 1$ \;
   }
   \Return{dist}\;
   \caption{Edge-Distance to Distance}
