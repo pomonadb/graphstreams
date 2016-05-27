@@ -173,3 +173,10 @@ TSWLatexianTemp*
 
 # KBibTeX
 *~*
+
+## Compiled module code
+*.pyc
+
+# swap files
+[#]*[#]
+
