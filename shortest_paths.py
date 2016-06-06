@@ -39,7 +39,7 @@ def main ():
         join_path.shortest_paths(db.cursor(), time_range, args.max_len, args.timer, args.clear)
     elif args.edge:
         print "Edge-Dijkstra"
-        edge_path.shortest_paths(db.cursor(), time_range, args.timer, args.clear)
+        edge_path.shortest_paths(db, time_range, args.timer, args.clear)
         
     print "For", args.start, "to", args.end, "with max length of", args.max_len
 
@@ -48,4 +48,6 @@ def main ():
         elapsed = end_time - start_time
         print "\t took", elapsed, "seconds"
 
+    db.close()
+        
 main()
