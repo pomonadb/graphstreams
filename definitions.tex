@@ -1,0 +1,228 @@
+\section{Problem Definition}
+
+In this section, we provide a set of formal definitions of temporal graph and
+temporal graph query. Then, we will discussion different semantics for
+interpreting the graph pattern matching problem on temporal graphs.
+
+A temporal graph is a graph that is annotated with time (of domain
+$\Z$). Formally,
+
+\begin{defn}
+  A \textbf{temporal graph} is a node and edge labeled $G = (V_G,E_G)$ where
+  $V_G$ is the set of vertices, and $E_G \subset V^2\times \Z^2$ is the set of
+  edges. A label function $L_G$ maps each node and each edge to its label.
+  
+  Associated with each edge $e$ is  a time interval $(ts_e, tf_e)$, which 
+  we call the {\bf active period} of the edge. 
+\end{defn}
+
+  We provide a few helper functions to obtain the end nodes of each edge and the
+  set the outgoing and incoming edges of a node:
+  \begin{itemize}
+  	\item given a node $u \in V_G$, $out(u) = \{e \in E_G \ | \,e = (u,v)$
+          for some $v \in V_G\}$; $in(u) = \{e \in E_G \,|\, e = (v,u)$ for some
+          $v \in V_G\}$.
+	\item given an edge $e = (u,v) \in E_G$, $\pi_1(e) = u$ and $\pi_2(e) =
+          v$.
+  \end{itemize}
+  
+   $\T : E \to \Z^2$ is a function that for any $e \in E_G$, $\T(e) = (ts_e,
+  tf_e)$.
+
+  We provide two helper function $\T_s$ and $\T_f$ that return the start and
+  finish time of the active period of an edge: $\T_s(e) = ts_e$ and $\T_f(e) =
+  tf_e$.
+  
+  Given two time intervals $T_1=(ts_1, tf_1)$ and $T_2 =(ts_2, tf_2)$, we define
+  the following predicates and computation:
+  \begin{itemize}
+  	\item  $T_1 = T_2 \Leftrightarrow ts_1 = ts_2 \wedge tf_1 = tf_2$;
+	\item $T_1 \subseteq T_2 \Leftrightarrow ts_1 \ge ts_2 \wedge tf_1 \le tf_2$;  
+ 	\item $T_1 \cap T_2 = (max(ts_1, ts_2), min(tf_1, tf_2))$;
+\end{itemize}
+
+ A time interval $ (ts, tf) = \emptyset$, if $tf<ts$.
+\SmallSpace
+
+\noindent{\bf Remarks:} 
+
+\begin{enumerate}
+	\item $G$ is not necessarily connected. 
+	
+	\item There maybe more than one edge between a pair of nodes, bearing
+          different active period $(t_s, t_f)$.
+		
+	\item For each pair of edges $e_1$ and $e_2$ between the same pair of
+          nodes $(u,v)$ that have the same edge label, we can assume that the
+          active period of the edges do not overlap, e.g., $\T(e_1) \cap \T(e_2)
+          = \emptyset$, since if they do overlap, we can combine the two edges
+          to form one whose active period is the union of the two.
+
+	\item There can be many simplified versions of the node and edge
+          labeling. For instance, only nodes are labeled, but edges are not,
+          hinting that all edges are labeled the same.
+	
+	\item In this definition, we only associate edges with timestamps. We
+          can assume that nodes are always active.
+	
+	\item In this definition, $G$ is a directed graph.  To make it
+          undirected, we can
+	\begin{itemize}
+		\item define $E \subseteq P^2(V) \times \Z^2$, where $P^2(V)$ is
+                  the powerset of size two over the naturals.
+		\item require that $(u,v,t_s,t_f) \in E_G \rightarrow
+                  (v,u,t_s,t_f) \in E_G$
+	\end{itemize}
+\end{enumerate}
+
+We define graph patterns in a way similar to how graph patterns are defined in
+SPARQL-like queries, but allowing users to provide additional constraints on
+time.
+
+\begin{defn}
+  A {\bf temporal graph query $q = <G_q, T_q>$} consists of a graph pattern
+  $G_q$ and a time interval $T_q$.
+
+Both the start and finish time of $\T_q$ can be a constant or ?.
+
+The graph pattern is a connected graph $G_q = (V_q, E_q)$, where $V_q$ is the
+set of nodes and $E_q$ is the set of edges. A label function $L_q$ maps each
+node/edge to its label, which can also be ?. Associated with each edge in $E_q$,
+user can also provide a temporal constraint in the form of a time interval,
+again, both the start and finish time can be a constant or ?.
+
+We call $T_q$ the {\bf global temporal constraint} of $q$ and $T(e_q)$ for each
+$e_q \in E_q$ the {\bf local temporal constraints}.
+\end{defn}
+
+We overload the helper functions introduced earlier to apply to graph pattern
+and time intervals that serve as temporal constraints.
+
+\noindent {\bf Remark:} the definition above can be incorporated easily into
+SPARQL. We can investigate the details when we settle on the definition.
+
+\begin{defn}
+A {\bf match} of a graph pattern $G_q$ in $G$ is a total mapping $h: \{e_q: e_q
+\in E_q\} \rightarrow \{e_G: e_G \in E_G\} $ such that:
+
+\begin{itemize}
+	\item for each edge $e_q \in E_q$, the edge label predicate associated
+          with $e_q$ is satisfied by $h(e_q) \in E_G$.
+	\item for each node $v_q \in V_q$, the mapping of the outgoing and
+          incoming edges of $v_q$ share the same end node $v_G \in V_G$ and the
+          node label predicate associated with $v_q$ is satisfied by
+          $v_G$. Formally, for any two edges $e_1, e_2 \in E_q$, if $\pi_i(e_1)
+          = \pi_j(e_2)$, where , $i ,j$ can be 0 or 1, the following must hold:
+          $\pi_i(h(e_1)) = \pi_j(h(e_2))$.
+\end{itemize}
+\end{defn}
+
+Please note that the definition of matching is the same as pattern matching
+defined for SPARQL-like graph queries. The new problem is how we can take the
+temporal constraints into consideration, which will be defined next.
+
+Note that we allow users to provide temporal constraints in the form of a time
+window for the whole pattern and for each edge, but we also provide the
+flexibility for them not to provide any specific temporal constraints via the
+``?'' option. Hence, users' temporal specification can be very strict, or very
+relaxed, or anywhere in between. Here are some scenarios:
+
+\begin{itemize}
+        \item most strict: user specifies explicit global and local temporal
+          constraints, and for each constraint specified, the start time is the
+          same as the end time.
+	\item most relaxed: user specifies temporal constraints with all ?'s, which means infinity.
+	\item anywhere in between: including the cases in which some temporal constraints contains ?. 
+	\item conflicted: the intersection of the global temporal constraint and
+          at least one of the local temporal constraint is empty. {\bf remark:}
+          we can easily identify conflict cases and return empty results without
+          query evaluation.
+\end{itemize}
+
+We first define a few semantics that explicitly address user-specified temporal
+constraints:
+
+\begin{defn}
+\label{explicit-temp-semantics}
+Given a graph $G$, a temporal graph query $q= <G_q, T_q>$, we say that a graph
+pattern matching $h$ explicitly satisfies the temporal constraint of $q$ if
+\begin{itemize}
+	\item under the {\bf exact} semantics, $h$ satisfies that:
+	\begin{itemize}
+		\item for all $e_q \in E_q$, $T(h(e_q)) = T(e_q)$ and $T(h(e_q))
+                  \subseteq T_q$.
+	\end{itemize}
+
+	\item under the {\bf contain} semantics, $h$ satisfies that:
+	\begin{itemize}
+		\item for all $e_q \in E_q$, $T(h(e_q)) \subseteq T(e_q)$ and
+                  $T(h(e_q)) \subseteq T_q$.
+	\end{itemize}
+
+	\item under the {\bf contained} semantics, $h$ must satisfy that:
+	\begin{itemize}
+		\item for all $e_q \in E_q$, $T(h(e_q)) \supseteq T(e_q)$ and
+                  $T(h(e_q)) \supseteq T_q$.
+	\end{itemize}
+
+	\item under the {\bf intersection} semantics, $h$ must satisfy that:
+	\begin{itemize}
+		\item for all $e_q \in E_q$, $T(h(e_q)) \cap T(e_q) \not=
+                  \emptyset $ and $T(h(e_q)) \cap T_q \not= \emptyset$.
+	\end{itemize}
+
+\end{itemize}
+\end{defn}
+
+\noindent{\bf Remark:} We need to think more carefully about how global temporal
+constraint $T_q$ is interpreted in these semantics. Best way is to come up with
+some example queries.
+
+\SmallSpace
+
+The {\bf {\em explicit temporal semantics}} defined above address only the issue
+of interpreting temporal constraints specified by users. Matching returned under
+all these semantics will include subgraphs that are not temporally traversable.
+
+We next define a few {\bf {\em implicit temporal semantics}} as remedy. 
+
+\begin{defn}
+Given a temporal graph $G$, we say that the graph is {\bf concurrent} if
+$\displaystyle\bigcap_{e \in E_G}T(e) \not= \emptyset$.
+\end{defn}
+
+\begin{defn}
+Given a temporal graph $G$, we say that the graph is {\bf consecutive} if for
+any $e_1 = (w,u) ,e_2=(u,v) \in E_G$, $T(e_1) \cap T(e_2) \not= \emptyset$.
+\end{defn}
+
+Hence, we can define {\bf {\em implicit temporal semantics}} to demand that
+resultant matching sub-graph be {\bf concurrent }or {\bf consecutive}.
+
+\SmallSpace
+\noindent {\bf Conjectures:}
+ \begin{enumerate}
+	\item If the graph $G$ is of star shape, e.g., there exist a center node
+          $u$ such that for any other nodes $v$ there exists an edge between $u$
+          and $v$, then, $G$ is concurrent iff $G$ is consecutive.
+	\item If the graph $G$ is a clique, then, $G$ is concurrent iff $G$ is
+          consecutive.
+	\item If there exists a circle that traverse through all nodes in $G$,
+          then, there exist an edge on this circle whose active period dominates
+          those of all other edges on the circle.
+	
+\end{enumerate}
+
+\noindent {\bf Remarks:}
+\begin{itemize}
+	\item Whether these conjectures are true or not may depend on whether
+          the graph is directed or undirected.
+	\item Either we need to find some work that has proved them, or to prove
+          them, which should not be hard.
+	\item These conjectures, if proved true, can be used to speed up query
+          evaluation process. It should be easy to identify star shape, clique
+          and circle in query patterns, which are usually very small. This will
+          allow us to strength the temporal constraints based on the properties
+          described in the conjectures to enhance filtering.
+
+\end{itemize}
