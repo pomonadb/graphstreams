@@ -1,0 +1,73 @@
+\section{Neighborhood Encoding}
+
+This section focuses on encoding methods that we can use to prune the search
+space. In a similar vein to the way that GADDI, QuickSI, and GraphQL have
+developed subgraph signatures that allow for the search space to be pruned, we
+will extend, specifically, the notion of neighborhood subgraph profiles
+(GraphQL) to include temporal information. First, lets present the notion of
+Neighborhood Subgraphs.
+
+\begin{defn}
+  (Neigborhood Subgraph) Given a static graph $G_s$, vertex $v$ and radius $r$,
+  the $r$-neighborhood subgraph of vertex $v$, denoted $N(G,v,r)$, consists of
+  all vertices within distance $r$ from $v$ and all edges between the
+  vertices. Note that $N(G,v,0) = ({v}, \emptyset)$. (Taken from GraphQL)
+\end{defn}
+
+This is a fairly basic notion that is easily extensible to consider temporal
+information. The first requirement that will help us to prune the search space,
+is to force these subgraphs to be contemporary under some condition $c$
+(e.g. \textsc{consec} or \textsc{concur}). So it is possible that a given
+neighborhood subgraph is contemporary under the given $c$, but that there are
+certain subgraphs of the static neighborhood subgraph that are.  So our
+extension will return a set of subgraphs, not just a single subgraph.
+
+\begin{defn}
+  (Temporal Neighborhood Subgraphs) Given a temporal graph $G$, a vertex $v$, a
+  radius $r$, and a condition c, the Temporal Neighborhood Subgraph Set
+  $N_c(G,v,r)$ of a vertex $v$ consists of those static neighborhood subgraphs
+  that are concurrent under $c$. Note that $\displaystyle\bigcup N_c(G,v,r) =
+  N(G,v,r)$.
+\end{defn}
+
+However, calculating these temporal $r$-neighborhood subgraphs are expensive, so we
+will condense these into a much more lightweight \textit{profile}. For static
+$r$-neighborhood subgraphs, we simply lexographically order the labels on the
+vertices within the set. Then given a similar ordering of the vertices for the
+query graph $Q$, we can prune the search space when the generated $r$-neighborhood
+subgraph of the query graph is not a subsequence of the data graph profile.
+
+For temporal $r$-neighborhood subgraphs, we have more information that we can
+use to prune the search space. The \textit{temporal profile} of an
+$r$-neighborhood subgraph will be a tuple $p = (p_s,p_t)$ of the static profile and
+some temporal information. This temporal information will be an interval
+constructed from the intervals on the edges of graph. We will henceforth refer
+to $p_S$ as the semantic profile, and $p_t$ as the profile interval.
+
+How exactly this profile interval will be constructed is closely related to the
+contemporaneity condition $c$, and will be user defined.  For now we will notate
+this as $c.p$, to signify that it is the folding protocol defined for the
+contemporaneity condition $c$. For example in the \textsc{consec} case we will
+take the union of the intevals on the edges, in the \textsc{t-resp} case we will
+take interval equal to $({t_s}_{min}, \infty)$, and in the \textsc{concur} case
+we will take the intersection of the intervals on the edges.
+
+Once we have this information, we will compare the temporal $r$-neighborhood
+profiles of the query graph and the data graph. The semantic condition will be
+that the query semantic profile must be a subsequence of the data semantic
+profile, where the interval condition will just be that the intersection must be
+nonempty.  If there is no query interval specified, then we will consider the
+interval to be $(\infty, \infty)$. This is defined formally below
+
+\begin{defn}
+  The temporal profile $p$ of a graph $G = (V,E)$ given some contemporaneity condition
+  $c$ is defined to be a tuple $(p_s, p_t)$ where
+  \begin{itemize}
+  \item $p_S$ \emph{\texttt{:=} \, \texttt{toSortedList}} \; $\{L(v) | v \in V \}$,
+    and
+  \item $p_t$ \emph{\texttt{:=} \, \texttt{foldr1}} \; $c.p$ \; $\{T(e) | e \in E\}$, where
+    \texttt{foldr1} accumulates $c.p$ accross the  given set, assuming the set
+    is non-empty. If the set is empty then let $p_t$ be $(\infty,\infty)$.
+  \end{itemize}
+\end{defn}
+
