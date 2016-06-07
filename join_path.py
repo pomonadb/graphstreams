@@ -26,7 +26,7 @@ def main ():
     num_steps = (args.end - args.start)/args.step
     time_range = [args.start + args.step*x for x in range(num_steps)]
     
-    join_shortest_path(db.cursor(), time_range, args.max_len, args.timer, args.clear)
+    shortest_paths(db.cursor(), time_range, args.max_len, args.timer, args.clear)
         
     print "For", args.start, "to", args.end, "with max length of", args.max_len
 
@@ -36,10 +36,11 @@ def main ():
         print "\t took", elapsed, "seconds"
 
     
-def join_shortest_path(c, t_range, max_len, is_timing, clear):
+def shortest_paths(c, t_range, max_len, is_timing, clear):
     # create the desired table
     if clear:
         c.execute("DROP TABLE IF EXISTS `dist{0}`".format(max_len))
+        
     c.execute("""CREATE TABLE IF NOT EXISTS `dist{0}`( 
                     `did` INT PRIMARY KEY AUTO_INCREMENT, 
                     `t` INT NOT NULL, 
@@ -87,4 +88,4 @@ def join_shortest_path(c, t_range, max_len, is_timing, clear):
             print "\t year", t, "took", (te-ts), "seconds"
 
             
-main()
+if __name__ == "__main__" : main()
