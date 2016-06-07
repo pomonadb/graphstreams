@@ -24,7 +24,7 @@ extension will return a set of subgraphs, not just a single subgraph.
 
 \begin{defn}
   (Temporal Neighborhood Subgraphs) Given a temporal graph $G$, a vertex $v$, a
-  radius $r$, and a condition c, the Temporal Neighborhood Subgraph Set
+  radius $r$, and a condition $c$, the Temporal Neighborhood Subgraph Set
   $N_c(G,v,r)$ of a vertex $v$ consists of those static neighborhood subgraphs
   that are concurrent under $c$. Note that $\displaystyle\bigcup N_c(G,v,r) =
   N(G,v,r)$.
@@ -52,13 +52,6 @@ take the union of the intevals on the edges, in the \textsc{t-resp} case we will
 take interval equal to $({t_s}_{min}, \infty)$, and in the \textsc{concur} case
 we will take the intersection of the intervals on the edges.
 
-Once we have this information, we will compare the temporal $r$-neighborhood
-profiles of the query graph and the data graph. The semantic condition will be
-that the query semantic profile must be a subsequence of the data semantic
-profile, where the interval condition will just be that the intersection must be
-nonempty.  If there is no query interval specified, then we will consider the
-interval to be $(\infty, \infty)$. This is defined formally below
-
 \begin{defn}
   The temporal profile $p$ of a graph $G = (V,E)$ given some contemporaneity condition
   $c$ is defined to be a tuple $(p_s, p_t)$ where
@@ -69,5 +62,38 @@ interval to be $(\infty, \infty)$. This is defined formally below
     \texttt{foldr1} accumulates $c.p$ accross the  given set, assuming the set
     is non-empty. If the set is empty then let $p_t$ be $(\infty,\infty)$.
   \end{itemize}
+
+  Given two temporal profiles $p = (p_s, p_t)$ and $p' = (p'_s, p'_t)$, $p$ is
+  said to contain $p'$ with respect to a condition $c$ (denoted $p' \subseteq_c
+  p$) if $p'_s$ is a subseqence of $p_s$, and $c.p(p_t, p'_t)$.
 \end{defn}
+
+
+Once we have this information, we will compare the temporal $r$-neighborhood
+profiles of the query graph and the data graph. The semantic condition will be
+that the query semantic profile must be a subsequence of the data semantic
+profile, where the interval condition will just be that the intersection must be
+nonempty.  If there is no query interval specified, then we will consider the
+interval to be $(\infty, \infty)$. This local refinement is defined in Algorithm
+\ref{alg:loc_ref}.
+
+\begin{algorithm}
+  \label{alg:loc_ref}
+  \caption{\textsc{LocalRefinement(Q,G,$\Phi$, $r$, $c$)}}
+  \SetAlgoLined
+  \KwIn{A query graph $Q$, data graph $G$, current candidate sets $\Phi$, a
+    radius $r$}
+  \KwOut{A refined set of $\Phi$}
+
+  \ForEach{$u \in V(Q)$}{
+    Calculate the temporal profile $p_Q$ of $N_c(Q,u,r)$\;
+    \ForEach{$v \in \Phi(u)$}{
+      Calculate the temporal profile $p_G$ of $N_c(G,v,r)$\;
+      \If{$p_Q \not\subseteq p_G$}{
+        remove $v$ from $\Phi(u)$\; 
+      }
+    }
+  }
+\end{algorithm}
+
 
