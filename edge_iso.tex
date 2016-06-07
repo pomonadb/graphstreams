@@ -1,0 +1,60 @@
+\section{Edge Isomorphism}
+
+In this section we want to enumerate the basics of the interval graph
+method by expanding on the matches $h$ we defined above in
+Definition~\ref{defn:match}. Here we introduce the concept of the
+Coincidence Interval Graph, $\I_G^c$ of a temporal graph $G$. This
+interval graph is a lossless encoding (shown to be bijective) of the
+full temporal graph $G$, which allows us to run existing algorithms to
+find appropriate patterns.
+
+\begin{defn}
+  The Coincidence Interval Graph, $\I_G^c$ of a graph $G$ under
+  temporal condition $c$, is a tuple $\I_G^C = (E(G), \E)$, where
+  $E(G)$ is the edge set of the graph $G$ (and the vertex set of
+  $I_G^c$, and $\E \subseteq E(G)^2$ is the set of ``meta-edges'' between the edges of
+  $G$ (vertices of $I_G^c$). There is an edge between $e,f \in E(G)$
+  exactly when
+  \begin{itemize}
+    \item $e$ and $f$ share an endpoint, and
+    \item $c(e,f)$ returns \emph{True}
+  \end{itemize}
+
+  Where $c: E^2 \to \textbf{2}$ is a function that allows the user to
+  control the conditions under which two edges are ``contemporary''.
+  Let the function that computes this graph under the condition $c$ be $I_c$.
+\end{defn}
+
+The generic nature of this definition of the Coincidence Interval
+Graph allows for the user to define textit{how} the contemporaneity of
+the query can be defined. Simply, this can be extended to define the
+\textit{\bf implicit temporal semantics} of the resultant query. In
+practice we will use the functions \textsc{consec} and \textsc{concur}
+(enforcing definitions \ref{def:consec} and \ref{def:concur}
+respectively) most frequently. But one could also imagine infinitely
+nuanced definitions. Another that is adapted from one commonly used
+for time-respecting paths (Kempe et al) is \textsc{t-resp}, wherein
+the graph must be weakly temporally connected (citation).
+
+\begin{lemma}
+  \label{lem:ci_biject}
+  The function $I_c$ that constructs the Coincidence Interval Graph
+  given some contemporaneity condition $c$ is a bijection.
+\end{lemma}
+
+\begin{proof}
+  \textit{injective}. Want to show that for any $c$, $I_c(G) = I_c(H)$ implies $G = H$
+  for any two graphs $G$ and $H$.
+  \todo[inline]{prove injectivity}
+  \textit{surjective}. Want to show that for every interval graph
+  $\I^c_G$, there exists a graph $G$, such that $I_c(G) = \I^c_G$.
+  \todo[inline]{prove surjectivity}
+\end{proof}
+
+The construction of this graph (as defined in Algorithm
+\ref{alg:ci_graph}\todo{write this alg}) is a fairly
+straightforward algorithm (and in fact is $O(|E|d_{\max}(G))$ in the
+edge-relational representation of the graph). A quick corollary of
+Lemma \ref{lem:ci_biject} is that given a condition $c$, if there
+exists some isomorphism $f_c : \I^c_G \to \I^c_H$, then $I_c^{-1}
+\circ f_c \circ I_c : G \to H$ is also an isomorphism.

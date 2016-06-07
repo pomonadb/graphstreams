@@ -102,18 +102,18 @@ and time intervals that serve as temporal constraints.
 SPARQL. We can investigate the details when we settle on the definition.
 
 \begin{defn}
-A {\bf match} of a graph pattern $G_q$ in $G$ is a total mapping $h: \{e_q: e_q
-\in E_q\} \rightarrow \{e_G: e_G \in E_G\} $ such that:
+  \label{defn:match}
+  A {\bf match} of a graph pattern $G_q$ in $G$ is a total mapping $h: \{e_q: e_q
+  \in E_q\} \rightarrow \{e_G: e_G \in E_G\} $ such that:
 
-\begin{itemize}
-	\item for each edge $e_q \in E_q$, the edge label predicate associated
-          with $e_q$ is satisfied by $h(e_q) \in E_G$.
-	\item for each node $v_q \in V_q$, the mapping of the outgoing and
-          incoming edges of $v_q$ share the same end node $v_G \in V_G$ and the
-          node label predicate associated with $v_q$ is satisfied by
-          $v_G$. Formally, for any two edges $e_1, e_2 \in E_q$, if $\pi_i(e_1)
-          = \pi_j(e_2)$, where , $i ,j$ can be 0 or 1, the following must hold:
-          $\pi_i(h(e_1)) = \pi_j(h(e_2))$.
+  \begin{itemize}
+    \item for each edge $e_q \in E_q$, the edge label predicate associated with
+      $e_q$ is satisfied by $h(e_q) \in E_G$.
+    \item for each node $v_q \in V_q$, the mapping of the outgoing and incoming
+      edges of $v_q$ share the same end node $v_G \in V_G$ and the node label
+      predicate associated with $v_q$ is satisfied by $v_G$. Formally, for any
+      two edges $e_1, e_2 \in E_q$, if $\pi_i(e_1) = \pi_j(e_2)$, where , $i ,j$
+      can be 0 or 1, the following must hold: $\pi_i(h(e_1)) = \pi_j(h(e_2))$.
 \end{itemize}
 \end{defn}
 
