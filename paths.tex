@@ -1,6 +1,7 @@
 \documentclass{article}
 \usepackage[ruled, linesnumbered]{algorithm2e}
-\usepackage{amsmath, amsthm, amssymb, tikz, float}
+\usepackage{amsmath, amsthm, amssymb, tikz, float, todonotes}
+\usepackage{mdframed}
 
 \usepackage{listings}
 \lstset{
@@ -21,9 +22,11 @@
 
 \newcommand{\W}{\mathcal{W}}
 \newcommand{\Z}{\mathbb{Z}}
+\renewcommand{\P}[1]{\mathbb{P}\left( #1 \right)}
 \newcommand{\T}{\text{T}}
+\newcommand{\TT}{\mathcal{T}}
 
-
+\renewcommand{\and}{\wedge}
 
 \title{Temporal Graphs Research at Pomona College\\
   \textit{Working Definitions and Vocabulary}
@@ -59,8 +62,8 @@ continue our research.
   vertices, and $E \subset V^2$ is the set of edges. A graph is \textbf{directed}
   if $(u,v) \in E$ is an ordered pair, and is \textbf{undirected} if unordered.
 
-  $\T$ is a function $\T : E \to \Z^2$ with the co-domain being the start and
-  end times of the edges, in number of time units (you can always pick a
+  $\T$ is a function $\T : E \to \TT^2$ with the co-domain being the start and
+  end times of the vertices, in number of time units (you can always pick a
   smaller time unit so that the bounds of this interval are integral). Note that
   forall $e \in E$ with $\T(e) = (t_s, t_f)$, $t_s \leq t_f$. In a
   \textbf{static} graph, where $\T(e) = (\infty, \infty)$ for all $e \in E$,
@@ -70,10 +73,10 @@ continue our research.
   \textbf{unweighted} graph if every edge has the same weight, then we can
   leave $\W$ out of the definition.
 
-  All edges are to be treated as directed edges with some weight $\W$ and
-  time-window $\T$ (possibly instantaneous) in which they are \textit{active}.
-  Additionally, we will maintain the standard definitions of \textit{size} and
-  \textit{order} defined respectively: $|E|$,  $|V|$.
+  All edges $e \in E$ are to be treated as directed edges with some weight
+  $\W(e)$ and time-window $\T(e)$ (possibly instantaneous) in which they are
+  \textit{active}.  Additionally, we will maintain the standard definitions of
+  \textit{size} and \textit{order} defined respectively: $|E| = m$, $|V| = n$.
 \end{defn}
 
 With this generalized definition of a temporal network, we will begin to explain
@@ -312,14 +315,12 @@ these in the case of the unweighted coauthorship network $(V,E,T)$. They are eac
 heavily based on the standard Breadth First Search, but performed on edges -
 not on vertices.
 
-
-For both
-algorithms we use the matrix \texttt{dist}, which represents a complete mapping
-between pairs of vertices and initial time stamp and the distance between them, with the default
-value set to $\infty$. Similarly \texttt{interval} is an array representing the
-union of all edges on the shortest path to each edge, with the default value
-being \texttt{null}. R is a min-heap of edges \texttt{e}, sorted on
-\texttt{dist[src][snd e]}.
+For both algorithms we use the matrix \texttt{dist}, which represents a complete
+mapping between pairs of vertices and initial time stamp and the distance
+between them, with the default value set to $\infty$. Similarly
+\texttt{interval} is an array representing the union of all edges on the
+shortest path to each edge, with the default value being \texttt{null}. R is a
+min-heap of edges \texttt{e}, sorted on \texttt{dist[src][snd e]}.
 
 The last piece of this is the helper-function \texttt{edge\_neighborhood}, which
 for an edge $e = (u,v)$ corresponds to the standard mathematical set
@@ -343,7 +344,7 @@ we do this accross all time slices, so we have $O(tnm\log m)$.
   distance from node $v_{src}$ to node $v_{dest}$ such that time $t$ intersects the time
   interval of the first edge in the path.}
   \ForEach(//loop over nodes in time slices){
-    time, start node pair $(t, v_{src})$ in $\mathcal{T} \times V$
+    time, start node pair $(t, v_{src})$ in $\TT \times V$
   }{
     Let $e_{src} = (v_{src}, v_{src})$\;
     Let shortest interval be $T(e_{src}) = (t, t)$\;
@@ -371,12 +372,183 @@ we do this accross all time slices, so we have $O(tnm\log m)$.
   consecutive shortest path.
 \end{proof}
 
+\subsubsection{Improvements}
+
+Now we can consider several improvements on the existing algorithm.  The first
+is to define $V_t \subseteq V$, the active vertices at time $t \in \T$ (recall
+that a vertex $v$ is active at a time $t$ if and only if there is an edge $e$
+incident to $v$ such that $t \in T(e)$).  This will cut down significantly on the
+number of neighborhood queries that will return empty, instead choosing to focus
+on those that will return results.
+
+We can also consider a slightly different model for this algorithm,
+considering the map $dist$ to be a database table with B+ indices
+(which will be represented more simply by matrix and then introducing
+a temporal adjacency matrix (DB table).
+
+\begin{defn}
+  For a temporal graph $G = (V, E, \T)$, where $V$ is the vertex set,
+  $E$ is the edge set, and $\T : E \to \TT^2$ is the temporal activity
+  function.  Let $A_\TT = \left(a_{uv}\right) \in M_n(\P{\TT^2})$ be
+  the \textbf{temporal adjacency matrix} of $G$, where $a_{uv}$ is the
+  set of all pairs of start and end times such that there is an edge
+  bewteen $u$ and $v$.  \todo[inline]{It's possible that we really
+    want $A_t \in M_n(\TT^2)$ for $t \in \TT$, but I'm not certain
+    whether we want this matrix to exist only at time $t \in \TT$, or
+    if we want this to be a time-agnostic matrix}
+
+  For example, in a graph $G = (V,E,\T)$, say that for vertices $u_0,v_0 \in V$,
+  there are edges $e_1,e_2,e_3$ with $u_0$ and $v_0$ as endpoints, such that
+  $\T(e_1) = (s_1,t_1)$, $\T(e_2) = (s_2,t_2)$, $\T(e_3) = (s_3,t_3)$, and
+  $\T(e_1) \cap T(e_3) \neq \emptyset$, then the entry $a_{u_0,v_0}$ of $A_\TT$
+  is $\{(\T(e_1) \cup \T(e_3)),\T(e_2)\}$.
+\end{defn}
+
+We can use this temporal adjacency matrix along with a tentative version of the 
+$dist$ matrix, to calculate the paths of length $l$ or starting from any vertex.
+
+\begin{defn}
+  The tentative distance matrix $\tau_t \in M_N(\Z \times\P{\TT^2})$ is used in
+  the iteration of the algorithm to hold the tentative distance between two
+  vertices and the set of broadest active windows for the path.
+\end{defn}
+
+We can use these structures to define a more efficient algorithm (which may
+  in fact be the same algorithm)
+
+\begin{algorithm}[H]
+  \SetAlgoLined 
+
+  \KwIn{The Adjacency matrix $A$ of a temporal graph $G = (E,V,\T)$, its interval
+    function $\T : E \to \TT$, and the codomain of $\T$, $\TT$.}
+
+  \KwOut{The algorithm outputs $\tau$ such that $dist[t][v_{src}][v_{dest}] = d$
+    where $d$ is the (shortest consecutive path) distance from node $v_{src}$ to
+    node $v_{dest}$ such that time $t$ intersects the time interval of the first
+    edge in the path.}
+
+  \ForEach{$t \in [\TT]$}{
+    \textsc{insert} $A$ into $D$ with $b = 1$ \;
+
+    Let $D_l$ for $l \in [b]$ represent $\sigma_{b = l} D$ \;
+
+    \ForEach{ $l = 1,2, \cdots, b$ }{
+
+      Let $C_1$ := $(D_l.s, D_l.t) \cap (D_1.s, D_1.t)$\;
+      Let $C_2$ := $D_l.target = D_l.source$\;
+      Let $C_3$ := $ D_l.dist + D_1.dist \leq l $\;
+
+      Then, Let $C$ := $\displaystyle\bigwedge_{i = 1}^3 C_i$\;
+
+      Let $D'$ be
+      $\textsc{update}_{dist = D_l.dist + D_1.dist } \left(D_l \bowtie_C
+        D_1\right)$\;
+      
+      \textsc{insert} $D'$ into $D$\;
+    }
+  }
+ \caption{Consecutive Shortest Path Distance Algorithm}
+\label{fig:join_consec_STP_alg}
+\end{algorithm}
+
+The worst-case time and space complexity this is $O(tm^{\Delta l})$. However, in
+a sparse graph we see that it is bounded by $O(tn^2)$. The efficiency of this
+algorithm really relies on the efficiency of the join operation. 
+
+\begin{defn}
+  For a temporal graph $G = (V,E,T)$, its \textbf{coincidence graph},
+  $C_G = (E,\mathcal{E})$, with $\mathcal{E} \subseteq E^2$ is a simple graph
+  where the edges of $G$ become nodes of $C_G$, and there is an edge between two
+  nodes exactly when they share an incident vertex in $C_G$. Symbolically, for
+  two edges $e = uv, f = wz$ in the graph $G$, there is an edge
+  $ef \in \mathcal{E}$ in the graph $C_G$ if and only if
+  $\{u,v\}\cap \{w,z\} \neq \emptyset$.
+\end{defn}
+
+The great thing about this coincidence matrix is that it is simply another way
+of looking at existing data, and doesn't require addtional computation to
+create. This gives rise to another version of this algorithm. It actually
+requires two steps.  The first is to run dijkstra on $C_G \cap I_G$, so that the
+edges are co-incident and contemporary (we won't actually pre-compute this
+graph, but we'll do it as we go, to allow for one(ish) pass).
+ 
+
+\begin{algorithm}[H]
+  \SetAlgoLined 
+
+  \KwIn{A temporal graph $G = (V, E, T)$ and $e\_dist$ which encapsulates a
+    complete mapping from pairs of edges to the distance between them, with the
+    default value set to $\infty$}
+
+  \KwOut{The algorithm outputs $e\_dist$ such that $e\_dist[e_{src}][e_{dest}]$
+    is the distance between $e_{src}$ and $e_{dest}$ in $C_G$.}
+
+  \ForEach{$e_{src} \in E$}{
+    Let $R$ := $\{e_{src}\}$\;
+    Let $S$ := $\emptyset$\;
+    Let $e\_dist[e_{src}][e_{src}]$ := $0$\;
+    \While{$R \neq \emptyset$}{
+      Let $e$ := pop $R$\;
+      $S$ \texttt{+=} $e$\;
+      \ForEach{$f \in N(e) - (S \cup R)$}{
+        \If{$T(e) \cap T(f) \neq \emptyset$}{
+          $e\_dist[e_{src}][f]$ := $e\_dist[e_{src}][e] + 1$\;
+          $R$ \texttt{+=} $f$\;
+        }
+      }
+    }
+  }
+  \Return{e\_dist}\;
+ \caption{Shortest Edge-Distance Algorithm}
+\label{fig:edge_consec_BFS}
+\end{algorithm}
+
+The above algorithm is simply a BFS so it has worst-case time complexity
+described by $O(|E| + |\mathcal{E}|)$.
+
+Once this step has completed, we must convert this intermediate result, the
+shortest paths on $C_G$, to the one we are searching for, the shortest paths on
+$G$. To do this, for every pair of vertices, find the smallest distance in $C_G$
+between the incident edges, and add one, we see this in
+Algorithm~\ref{fig:edge_to_dist_alg}
+
+\begin{algorithm}[H]
+  \SetAlgoLined
+  
+  \KwIn{A graph $G = (V,E,T)$, where $T : E \to \TT$ and the precomputed map
+    $e\_dist$ describing the distances between all vertices in
+    $C_G = (E, \mathcal E)$.}
+  
+  \KwOut{The map $dist$ describing the distances between all pairs of vertices
+    at every time slice. }
+
+
+  \ForEach{$(t,u,v) \in \TT \times V_t \times V$}{
+    $d_e := \min\{e\_dist[e][f] | e \in N_E(u), f \in N_E(v), t \in T(e)\}$ \;
+    $dist[t][u][v] := d_e + 1$ \;
+  }
+  \Return{dist}\;
+  \caption{Edge-Distance to Distance}
+  \label{fig:edge_to_dist_alg}
+\end{algorithm}
+
+This has the higher complexity, and is $O(tn^2\Delta^2)$, where
+$\Delta$ is the maximum degree of $G$.
+
+So the overall time complexity of algorithms \ref{fig:edge_consec_BFS} and
+\ref{fig:edge_to_dist_alg} composed is $O(tn^2\Delta^2 + m + |\mathcal{E}|) =
+O(tn^2\Delta^2 + |\mathcal{E}|)$, and for a sparse graph $O(tn^2)$.
+
+
 \subsection{Complete Shortest Path Distance Algorithm}
+\todo[inline]{Complete SP Distance}
 
 \section{Fastest Path Algorithms}
 
 \subsection{Consecutive Fastest Path Distance Algorithm}
+\todo[inline]{Consec FP Distance}
 
 \subsection{Complete Fastest Path Algorithm}
+\todo[inline]{Complete FP Distance}
 
 \end{document}
