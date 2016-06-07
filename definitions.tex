@@ -133,7 +133,7 @@ relaxed, or anywhere in between. Here are some scenarios:
           same as the end time.
 	\item most relaxed: user specifies temporal constraints with all ?'s, which means infinity.
 	\item anywhere in between: including the cases in which some temporal constraints contains ?. 
-	\item conflicted: the intersection of the global temporal constraint and
+        \item conflicted: the intersection of the global temporal constraint and
           at least one of the local temporal constraint is empty. {\bf remark:}
           we can easily identify conflict cases and return empty results without
           query evaluation.
@@ -187,13 +187,15 @@ all these semantics will include subgraphs that are not temporally traversable.
 We next define a few {\bf {\em implicit temporal semantics}} as remedy. 
 
 \begin{defn}
-Given a temporal graph $G$, we say that the graph is {\bf concurrent} if
-$\displaystyle\bigcap_{e \in E_G}T(e) \not= \emptyset$.
+  \label{def:concur}
+  Given a temporal graph $G$, we say that the graph is {\bf concurrent} if
+  $\displaystyle\bigcap_{e \in E_G}T(e) \not= \emptyset$.
 \end{defn}
 
 \begin{defn}
-Given a temporal graph $G$, we say that the graph is {\bf consecutive} if for
-any $e_1 = (w,u) ,e_2=(u,v) \in E_G$, $T(e_1) \cap T(e_2) \not= \emptyset$.
+  \label{def:consec}
+  Given a temporal graph $G$, we say that the graph is {\bf consecutive} if for
+  any $e_1 = (w,u) ,e_2=(u,v) \in E_G$, $T(e_1) \cap T(e_2) \not= \emptyset$.
 \end{defn}
 
 Hence, we can define {\bf {\em implicit temporal semantics}} to demand that
