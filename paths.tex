@@ -315,14 +315,12 @@ these in the case of the unweighted coauthorship network $(V,E,T)$. They are eac
 heavily based on the standard Breadth First Search, but performed on edges -
 not on vertices.
 
-
-For both
-algorithms we use the matrix \texttt{dist}, which represents a complete mapping
-between pairs of vertices and initial time stamp and the distance between them, with the default
-value set to $\infty$. Similarly \texttt{interval} is an array representing the
-union of all edges on the shortest path to each edge, with the default value
-being \texttt{null}. R is a min-heap of edges \texttt{e}, sorted on
-\texttt{dist[src][snd e]}.
+For both algorithms we use the matrix \texttt{dist}, which represents a complete
+mapping between pairs of vertices and initial time stamp and the distance
+between them, with the default value set to $\infty$. Similarly
+\texttt{interval} is an array representing the union of all edges on the
+shortest path to each edge, with the default value being \texttt{null}. R is a
+min-heap of edges \texttt{e}, sorted on \texttt{dist[src][snd e]}.
 
 The last piece of this is the helper-function \texttt{edge\_neighborhood}, which
 for an edge $e = (u,v)$ corresponds to the standard mathematical set
@@ -374,7 +372,6 @@ we do this accross all time slices, so we have $O(tnm\log m)$.
   consecutive shortest path.
 \end{proof}
 
-\begin{mdframed}
 \subsubsection{Improvements}
 
 Now we can consider several improvements on the existing algorithm.  The first
@@ -538,14 +535,9 @@ Algorithm~\ref{fig:edge_to_dist_alg}
 This has the higher complexity, and is $O(tn^2\Delta^2)$, where
 $\Delta$ is the maximum degree of $G$.
 
-So the overall time complexity of algorithms \ref{fig:edge_consec_BFS}
-and \ref{fig:edge_to_dist_alg} composed is
-$O(tn^2\Delta^2 + m + |\mathcal{E}|) = O(tn^2\Delta^2 +
-|\mathcal{E}|)$, and for a sparse graph $O(tn^2)$.
-
-
-
-\end{mdframed}
+So the overall time complexity of algorithms \ref{fig:edge_consec_BFS} and
+\ref{fig:edge_to_dist_alg} composed is $O(tn^2\Delta^2 + m + |\mathcal{E}|) =
+O(tn^2\Delta^2 + |\mathcal{E}|)$, and for a sparse graph $O(tn^2)$.
 
 
 \subsection{Complete Shortest Path Distance Algorithm}
