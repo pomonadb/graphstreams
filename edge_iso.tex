@@ -1,68 +1,95 @@
 \section{Edge Isomorphism}
 
-In this section we want to enumerate the basics of the interval graph
-method by expanding on the matches $h$ we defined above in
-Definition~\ref{defn:match}. Here we introduce the concept of the
-Coincidence Interval Graph, $\I_G^c$ of a temporal graph $G$. This
-interval graph is a lossless encoding (shown to be bijective) of the
-full temporal graph $G$, which allows us to run existing algorithms to
-find appropriate patterns. In order to do this, we first need to
-introduce the concept of a temporal condition $c$.
+In this section we want to enumerate the basics of the interval graph method by
+expanding on the matches $h$ we defined above in
+Definition~\ref{defn:match}. Here we introduce the concept of the co-incidence
+interval graph, a derived static graph representing the temporal and incidence
+relationships between the edges of a temporal graph. This interval graph is a
+lossless encoding (shown to be bijective) of the full temporal graph $G$, which
+allows us to run existing algorithms to find appropriate patterns. However, what
+kind of temporal information it captures is determined by an \textit{temporal
+  condition} $c$, which determines how 
 
 \begin{defn}
-  A temporal condition $c$ is a combination of a logical forumla, $c.log$ that
-  describes what it means for two edges to be ``contemporary,'' a function $c.f
-  : E^2 \to \textbf{2}$ that determines whether a pair of edges satisfy $c.log$
-  , and a join policy $c.p: T^2 \to T$, which determines how to combine two
+  A temporal condition $c$ is a combination of a logical forumla, $c.log$, that
+  describes what it means for two edges to be ``contemporary,'' a function
+  $c.f : E^2 \to \textbf{2}$ that determines whether a pair of edges satisfy
+  $c.log$, and a join policy $c.p: T^2 \to T$, which determines how to combine two
   intervals for search space pruning.
 \end{defn}
 
 \begin{defn}
-  The Coincidence Interval Graph, $\I_G^c$ of a graph $G$ under
-  temporal condition $c$, is a tuple $\I_G^c = (E(G), \E)$, where
-  $E(G)$ is the edge set of the graph $G$ (and the vertex set of
-  $I_G^c$, and $\E \subseteq E(G)^2$ is the set of ``meta-edges'' between the edges of
-  $G$ (vertices of $I_G^c$). There is an edge between $e,f \in E(G)$
-  exactly when
+  The co-incidence interval graph, $\I_G^c$ of a graph $G = (V,E)$ under
+  temporal condition $c$, is a tuple $\I_G^c = (E, \E)$, where $E$ is the edge
+  set of the graph $G$ (and the vertex set of $I_G^c$, and $\E \subseteq E^2$ is
+  the set of ``meta-edges'' between the edges of $G$ (vertices of
+  $I_G^c$). There is an edge between $e,f \in E$ exactly when
   \begin{itemize}
-    \item $e$ and $f$ share an endpoint, and
-    \item $c.f(e,f)$ returns \emph{True}
+    \item $e$ and $e'$ share an endpoint, and
+    \item $c.f(e,e')$ returns \emph{True}
   \end{itemize}
 
   Let the function that computes this graph under the condition $c$ be $I_c$.
 \end{defn}
 
-The generic nature of this definition of the Coincidence Interval Graph allows
-for the user to define textit{how} the contemporaneity of the query can be
+The generic nature of this definition of the coincidence interval graph allows
+for the user to define \textit{how} the contemporaneity of the query can be
 defined. Simply, this can be extended to define the \textit{\bf implicit
-  temporal semantics} of the resultant query. In practice we will use the
-functions \textsc{consec} and \textsc{concur} (enforcing definitions
+  temporal semantics} of the resultant query. Most frequently we will use the
+temporal condition \textsc{consec} and \textsc{concur} (enforcing definitions
 \ref{def:consec} and \ref{def:concur} respectively) most frequently. But one
-could also imagine infinitely nuanced definitions. Another that is adapted from
-one commonly used for time-respecting paths (Kempe et al) is \textsc{t-resp},
-wherein the graph must be weakly temporally connected (citation). \todo{example}
+could also imagine infinitely nuanced definitions. Another that we will not use
+extensively here \todo{will we?} is adapted from one commonly used for
+time-respecting paths (Kempe et al) is \textsc{t-resp}, wherein the graph must
+be weakly temporally connected \todo{Cite this definition so we don't have to
+  define it}. \\[.5em]
+
+\todo[inline]{example}
 
 \begin{lemma}
   \label{lem:ci_biject}
-  The function $I_c$ that constructs the Coincidence Interval Graph given some
-  contemporaneity condition $c$ is a bijection for graphs with no singleton
-  components.
+  Given a contemporaneity condition $c$, the function $I_c$ is a bijection over
+  connected graphs with $\delta(G) \geq 1$.
 \end{lemma}
 
-\begin{proof}
-  \textit{injective}. Want to show that for any $c$, $I_c(G) = I_c(H)$ implies
-  $G = H$ for any two graphs $G$ and $H$.  \todo[inline]{prove injectivity}
-  \textit{surjective}. Want to show that for every interval graph $\I^c_G$,
-  there exists a graph $G$, such that $I_c(G) = \I^c_G$.  \todo[inline]{prove
-    surjectivity}
+\begin{proof}[Proof Idea.]\hfill
+  
+  \textit{Injectivity}. Assume you have two graphs $G$ and $G'$, such that $I_c(G)
+  = I_c(G')$. For two arbitrary edges $e = (u,v) \in E(G)$ and $e' = (u',v') \in
+  E(H)$, such that $e \mapsto n$ via $I_c$, and $e' \mapsto n$ via $I_c$, then
+  it must be that $e$ and $e'$ have the same labels, $u$ and $u'$ (also $v$ and
+  $v'$) have the same number of incident edges that are concurrent under
+  $c.log$. So, $e = e'$.  Since $e$ and $e'$ are arbitrary edges, and $I_c$
+  simply turns edges into nodes, $G = H$.
+
+  \textit{Surjectivity}. Given an arbitrary element $\I^c_G$, show that $I_c(G) =
+  \I^c_G$. Algorithm \ref{alg:ci_graph_inv} describes a way to create a graph
+  that will map under $I_c$ to $\I^c_G$\todo{is this the right way to use
+    Curry-Howard? Proof by Construction?}. This relies on the fact that every
+  edge $G$ maps to a vertex in $\I^c_G$.
 \end{proof}
 
-The construction of this graph (as defined in Algorithm
-\ref{alg:ci_graph}) is a fairly straightforward algorithm
-(and in fact is $O(|E|d_{\max}(G))$ in the edge-relational representation of the
-graph). A quick corollary of Lemma \ref{lem:ci_biject} is that given a condition
-$c$, if there exists some isomorphism $f_c : \I^c_G \to \I^c_H$, then $I_c^{-1}
-\circ f_c \circ I_c : G \to H$ is also an isomorphism.
+\noindent \textbf{Remarks:}
+\begin{itemize}
+  \item Note that we didn't use the edge set of $\I^c_G$ at all in the proof
+    above. This is because all of the structural information needed to describe
+    the graph $G$ is stored in the edge set (labels are handled by an external
+    map $L$.
+  \item Note that Lemma~\ref{lem:ci_biject} only holds for graphs with
+    $\delta(G) \geq 1$. This is because if there is a vertex that has degree
+    zero, there is no edge that knows about it. This could be solved if you
+    wanted to keep track of these vertices in $\I^c_G$. (Its also very unlikely
+    for interesting large graphs for singletons to be of any use or
+    importance. They will only be returned in trivial queries such as the empty
+    graph or singletons).
+\end{itemize}
+
+The construction of this graph (as defined in Algorithm \ref{alg:ci_graph}) is a
+fairly straightforward algorithm (and in fact is $O(|E|d_{\max}(G))$ in the
+edge-relational representation of the graph). A quick corollary of Lemma
+\ref{lem:ci_biject} is that given a condition $c$, if there exists some
+isomorphism $f_c : \I^c_G \to \I^c_H$, then $I_c^{-1} \circ f_c \circ I_c : G
+\to H$ is also an isomorphism.
 
 \begin{algorithm}
   \label{alg:ci_graph}
@@ -92,3 +119,5 @@ $c$, if there exists some isomorphism $f_c : \I^c_G \to \I^c_H$, then $I_c^{-1}
   }
   \Return $(V,E)$\;
 \end{algorithm}
+
+
