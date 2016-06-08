@@ -211,8 +211,8 @@ We next define a few {\bf {\em implicit temporal semantics}} as remedy.
 If a temporal graph $G$ is strongly consecutive, it must be weakly consecutive.
 \end{lemma}
 
-We use $\ImpTC$ to represent the set of implicit temporal constraints. $\ImpTC 
-=   \{\textsc{concur}, \textsc{Sconsec}, \textsc{Wconsec}\}. 
+We use $\impTC$ to represent the set of implicit temporal constraints. $\impTC 
+=   \{\textsc{concur}, \textsc{Sconsec}, \textsc{Wconsec}\}$. 
 
 Now, we can define {\bf {\em implicit temporal semantics}} to demand that
 resultant matching sub-graph be \textbf{concurrent}, \textbf{weakly
@@ -250,7 +250,11 @@ resultant matching sub-graph be \textbf{concurrent}, \textbf{weakly
 We now define a few functions that apply the implicit temporal semantics. 
 
 \begin{defn}
-Given a temporal graph $G$, and a set of edges $S_e \subseteq E_G$, the function $\tau_B$ is a Boolean function that takes an implicit temporal constraint $c$ and $S_e$ as input and returns true if the edge-induced graph $\pi_{S_e}(G)$ satisfies constraint $c$.
+Given a temporal graph $G$ the function $\tau_B$ is a Boolean function that takes an implicit temporal constraint $c$ and a set of edges $S_e \subseteq E_G$  as input and returns true if the edge-induced graph $\pi_{S_e}(G)$ satisfies constraint $c$, and false otherwise.
 \end{defn}
 
+\noindent {\bf Conjectures:}
+\begin{enumerate}
+	\item Given a temporal graph $G$,  a set of edges $S_e \subseteq E_G$ and a temporal constraint $c$, $\tau_B(c, S_e) \Rightarrow \forall S \subseteq S_e (tau_B(c, S)$
+\end{enumerate}
 
