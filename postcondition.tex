@@ -32,11 +32,21 @@ E$. We get this naive algorithm in Algorithm~\ref{alg:naive_temp}.
         \textbf{next}\;
       }
       
-      \If{$T_q \neq \emptyset$ and not $\forall e \in
-        E(g).\tau_B(\textsc{concur})\{T(e),T_q\}$}{ $R$\texttt{.remove} g\;
-        \textbf{next}\; } } \ForEach{$e' \in V(g)$}{ Let $e \in V(Q)$ be the
-      vertex mapped to $e'$\; \If{$T(e) \cap T(e') = \emptyset$}{
-        $R$\texttt{.remove} g\; \textbf{break}\; } } } \Return $R$\;
+      \If{$T_q \neq \emptyset$ and
+        not $\forall e \in E(g).\tau_B(c)\{T(e),T_q\}$}{
+
+        $R$\texttt{.remove} g\;
+        \textbf{next}\;
+      }
+    } \ForEach{$e' \in V(g)$}{
+      Let $e \in V(Q)$ be the vertex mapped to $e'$\;
+      \If{$T(e) \cap T(e') = \emptyset$}{
+        $R$\texttt{.remove} g\;
+        \textbf{break}\;
+      }
+    }
+  }
+  \Return $R$\;
 \end{algorithm}
 
 This algorithm simply filters out those result graphs that violate the temporal

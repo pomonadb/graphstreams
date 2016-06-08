@@ -6,8 +6,8 @@ will result in a lot of unnecessary computation of branches of the search tree
 that might've been pruned earlier. In this section we begin to propose some
 simple modifications to existing algorithms that will combine to create a first
 algorithm for temporal pattern matching. The extension discussed in
-Section~\ref{sec:joinable} is the one described in the temporal extension of VF2
-\cite{2012-arXiv-TemporalIso}.
+Section~\ref{sec:naive_joinable} is the one described in the temporal extension
+of VF2 \cite{2016-arXiv-TemporalIso}.
 
 The purpose of the function \textsc{FilterCandidates} is to provide a
 label-based index-boosted search of potential candidates for the input edge
@@ -17,10 +17,9 @@ for an edge $e$ in the query graph and a potential candidate $f$ in the data
 graph, if there is some temporal information $T(e)$, then we will enforce
 $\tau_b(c)(\{T(e), T(f)\})$. In the GraphQL algorithm, a function that discounts
 candidates based on signatures is composed with the standard label-index. We
-discuss our version of this algorithm in Section~\cite{sec:encoding}. The
+discuss our version of this algorithm in Section~\ref{sec:encoding}. The
 advantage of doing this here, is that we don't need to consider the specific
 temporal information of the edges in the query graph in the inner loops of
 \textsc{SubgraphSearch} since we already know that they are matched
 appropriately.
-
 

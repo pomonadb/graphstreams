@@ -1,13 +1,14 @@
 \section{Neighborhood Encoding}
-\label{ref:encoding}
+\label{sec:encoding}
 
-This section focuses on encoding methods that we can use to prune the search
-space. In a similar vein to the way that GADDI~\cite{2009-EDBT-GADDI},
-QuickSI~\cite{2008-VLDB-QuickSI}, and GraphQL~\cite{2008-SIGMOD-GraphQL} have
-developed subgraph signatures that allow for the search space to be pruned, we
-will extend, specifically, the notion of neighborhood subgraph profiles
-(GraphQL) to include temporal information. First, lets present the notion of
-Neighborhood Subgraphs~\cite{2008-SIGMOD-GraphQL}.
+This section focuses on encoding methods that we can use to locally prune the
+search space. The algorithm that will be developed here is an additional
+subroutine that can be used in \textsc{FilterCandidates}. In a similar vein to
+the way that GADDI~\cite{2009-EDBT-GADDI}, QuickSI~\cite{2008-VLDB-QuickSI}, and
+GraphQL~\cite{2008-SIGMOD-GraphQL} have developed subgraph signatures that allow
+for the search space to be pruned, we will extend, specifically, the notion of
+neighborhood subgraph profiles (GraphQL) to include temporal information. First,
+lets present the notion of Neighborhood Subgraphs~\cite{2008-SIGMOD-GraphQL}.
 
 \begin{defn}
   (Neigborhood Subgraph) Given a static graph $G_s$, vertex $v$ and radius $r$,
@@ -110,7 +111,6 @@ interval to be $(\infty, \infty)$. This local refinement is defined in Algorithm
     }
   }
 \end{algorithm}
-
 
 This \textsc{LocalRefinement} procedure is a part of the
 \textsc{FilterCandidates} procedure defined in Algorithm
