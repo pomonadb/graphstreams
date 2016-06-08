@@ -1,17 +1,18 @@
 \section{Neighborhood Encoding}
 
 This section focuses on encoding methods that we can use to prune the search
-space. In a similar vein to the way that GADDI, QuickSI, and GraphQL have
+space. In a similar vein to the way that GADDI~\cite{2009-EDBT-GADDI},
+QuickSI~\cite{2008-VLDB-QuickSI}, and GraphQL~\cite{2008-SIGMOD-GraphQL} have
 developed subgraph signatures that allow for the search space to be pruned, we
 will extend, specifically, the notion of neighborhood subgraph profiles
 (GraphQL) to include temporal information. First, lets present the notion of
-Neighborhood Subgraphs.
+Neighborhood Subgraphs~\cite{2008-SIGMOD-GraphQL}.
 
 \begin{defn}
   (Neigborhood Subgraph) Given a static graph $G_s$, vertex $v$ and radius $r$,
   the $r$-neighborhood subgraph of vertex $v$, denoted $N(G,v,r)$, consists of
   all vertices within distance $r$ from $v$ and all edges between the
-  vertices. Note that $N(G,v,0) = ({v}, \emptyset)$. (Taken from GraphQL)
+  vertices. Note that $N(G,v,0) = ({v}, \emptyset)$.
 \end{defn}
 
 This is a fairly basic notion that is easily extensible to consider temporal
@@ -32,11 +33,11 @@ single subgraph.
 
 However, representing and using these temporal $r$-neighborhood subgraphs is
 expensive, so we will condense these into a much more lightweight
-\textit{profile}. For static $r$-neighborhood subgraphs, we simply
-lexographically order the labels on the vertices within the set. Then, given a
-similar ordering of the vertices for the query graph $Q$, we can prune the
-search space when the generated $r$-neighborhood subgraph of the query graph is
-not a subsequence of the data graph profile.
+\textit{profile}~\cite{2008-SIGMOD-GraphQL}. For static $r$-neighborhood
+subgraphs, we simply lexographically order the labels on the vertices within the
+set. Then, given a similar ordering of the vertices for the query graph $Q$, we
+can prune the search space when the generated $r$-neighborhood subgraph of the
+query graph is not a subsequence of the data graph profile.
 
 For temporal $r$-neighborhood subgraphs, we have more information that we can
 use to prune the search space. The \textit{temporal profile} of an
