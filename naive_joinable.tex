@@ -1,0 +1,65 @@
+\subsection{Simple Modification of $\textsc{IsJoinable}$}
+\label{sec:naive_joinable}
+
+Now we want to similarly consider a more general form of the extension to VF2
+\cite{2004-PAMI-VF2} done in \cite{2016-arXiv-TemporalIso}, in which the authors
+somewhat informally presented a $Ti\&To$ algorithm in which they considered the
+the temporal information as they considered the Topographical information by
+extending the semantic function built into VF2. This is the \textsc{IsJoinable}
+subroutine introduced in Algorithm~\ref{alg:gen_query_proc} following the
+convention established in \cite{2012-VLDB-IsoSurvey}. To mirror this simple
+extension, we will enforce the condition $\tau_B$ for every new edge introduced,
+and reject the edge if one of them fails. Essentially, if a query vertex $u'$ is
+adjacent to $u$ and has already been matched, then it ensures that there is a
+corresponding edge in the data graph (with matching label if necessary). In
+\cite{2004-PAMI-VF2}, they maintain the dates of previously accessed nodes to
+assure that the current node maintains the \textsc{Wconsec} condition. However,
+since we are finding a mapping between edges (which contains a mapping between
+nodes), our mapping contains all of the edges that have been used, so we already
+have the relevant information.
+
+This algorithm is presented in Algorithm~\ref{alg:naive_isjoinable}. First, we
+will need some notation. Let $M_Q$ be the domain-so-far, and let $M_G$ be the
+image-so-far. I.e. $M_Q := \texttt{map fst} M$ and $M_G := \texttt{map snd} M$.
+The algorithm relies on the invariant that the mapping-so-far is contemporary
+with respect to some condition $c$.
+
+\begin{algorithm}
+  \label{alg:naive_isjoinable}
+  \caption{\textsc{IsJoinable}$(Q,T_q,G,e,f,M,c)$}
+  \KwIn{A query graph $Q$, $T_q$ a time interval, a data graph $G$, $e \in V(Q)$, $f \in G(Q)$, $c$ a
+    contemporaneity condition, and $M \in P(E(Q)\times G(Q))$ the mapping so
+    far}
+  \KwOut{A boolean representing whether we can safely add the pair $e \mapsto f$
+    to $M$}
+  
+  Let $e \texttt{:=} (u,u')$ and $f \texttt{:=} (v,v')$\;
+  
+  \ForEach{$e' \in (Pred(e) \cup Succ(e)) \cap M_Q$ }{
+
+    \eIf{$\exists f' \in (Pred(e) \cup Succ(e)) \cap M_G. (e \mapsto f') \in M$}{
+      \eIf{$c \neq \emptyset$ and $T_q \neq \emptyset$ }{
+        \If{not $\tau(c)(\{T_q\} \cup \{T(f'') | f'' \in M_G \cup \{f\}\})$}{
+          \Return \emph{False}\;
+        }
+      }{
+        \If {$c \neq \emptyset$ and not $\tau(c)(\{T(f'') | f'' \in M_G \cup \{f\}\})$}{
+          \Return \emph {False}\;
+        }
+        \If{$T_q \neq \emptyset$ and not $\tau(\texttt{consec})(\{T(f),T_q\})$}{  
+          \Return \emph{False}\;
+        }
+      }
+    }{
+      \Return \emph{False}\;
+    }
+    
+    \Return \emph{True}\;
+  }
+\end{algorithm}
+
+
+This is obviously going to significantly reduce the search space from the naive
+approach presented in section \ref{sec:postcondition}. This will prune very
+early the execution large sections of the tree that will not be searchable since
+they rely on a non-consecutive or non-intersecting edge.
