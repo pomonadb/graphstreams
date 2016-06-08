@@ -1,0 +1,45 @@
+\subsection{Temporal Postcondition}
+
+Similar to the way in which \cite{2016-arXiv-TemporalIso} developed several
+naive versions of the VF2~\cite{2004-PAMI-VF2} algorithm to include the basics
+of the \textsc{Wconsec} temporal semantics. We will consider a similar algorithm
+to the \textit{To-Ti}, algorithm where the topographical information is
+considered before the temporal information. Here, we simply filter the results
+of any implementation of \textsc{GenericQueryProc} with $\tau_b \circ T \circ
+E$. We get this naive algorithm in Algorithm~\ref{alg:naive_temp}.
+
+\begin{algorithm}
+  \label{alg:naive_temp}
+  \caption{\textsc{TopTimeQuery}$(<Q,T_q>, G, c)$}
+  \KwIn{A temporal query graph $Q$, a time range $T_q$, a
+    data graph $G$, and a temporal condition $c$}
+  \KwOut{The set of patterns obeying the temporal semantic $c$ matching $Q$ in $G$ }
+
+  $R$ \texttt{:=} \textsc{GenericQueryProc}$(Q,G)$\;
+  
+  \ForEach{$g \in R$}{
+
+    \eIf{$c \neq \emptyset$ and $T_q \neq \emptyset$}{
+      \If{ not $\tau_b(c)(\{T(e) | e \in E(G)\} \cup \{T_q\})$}{
+        $R$\texttt{.remove} g\;
+        \textbf{next}\;
+      }
+    }{
+
+      \If{$c \neq \emptyset$ and not $\tau_b(c)(\{T(e) | e \in E(G)\}$}{
+        $R$\texttt{.remove} g\;
+        \textbf{next}\;
+      }
+      
+      \If{$T_q \neq \emptyset$ and not $\forall e \in
+        E(g).\tau_B(\textsc{concur})\{T(e),T_q\}$}{ $R$\texttt{.remove} g\;
+        \textbf{next}\; } } \ForEach{$e' \in V(g)$}{ Let $e \in V(Q)$ be the
+      vertex mapped to $e'$\; \If{$T(e) \cap T(e') = \emptyset$}{
+        $R$\texttt{.remove} g\; \textbf{break}\; } } } \Return $R$\;
+\end{algorithm}
+
+This algorithm simply filters out those result graphs that violate the temporal
+semantics and/or the time window $T_q$.  When both $c$ and $T_q$ are given,
+the potential result graph must take $T_q$ into consideration when checking if
+the potential result graph obeys $c$.
+
