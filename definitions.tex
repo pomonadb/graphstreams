@@ -4,7 +4,7 @@ In this section, we provide a set of formal definitions of temporal graph and
 temporal graph query. Then, we will discussion different semantics for
 interpreting the graph pattern matching problem on temporal graphs.
 
-
+\subsection{Temporal Dimension}
 Given two time intervals $T_1,T_2  \in \N^2$, we define the following predicates and computation:
 \begin{itemize}
 	\item $\pi_1(T_1) =\ts_1$, and $\pi_2(T_1) = \tf_1$;
@@ -14,6 +14,7 @@ Given two time intervals $T_1,T_2  \in \N^2$, we define the following predicates
 	\item $T_1 \cup T_2 = (min(\ts_1, \ts_2), max(\tf_1, \tf_2))$;
 \end{itemize}
 
+\subsection{Temporal Graph}
 A temporal graph is a node and edge-labeled graph that is annotated with time intervals. Formally,
 
 \begin{defn}
@@ -74,6 +75,11 @@ We provide two helper function $\T_s$ and $\T_f$ that return the start and
 	\end{itemize}
 \end{enumerate}
 
+\begin{defn}
+Given a graph $G = (V_G, E_G, L_G)$ and a set of edges $S_e \subseteq E_G$, we say that $\pi_{S_e}(G) = (V_{S_e}, S_e, L_G)$, where $V_{S_e} = \bigcup_{e \in S_e} \{\pi_1(e)\} \cup \{\pi_2(e)\}$, is the edge-induced graph of $S_e$ on $G$. 
+\end{defn}
+
+\subsection{Temporal Graph Pattern}
 We define graph patterns in a way similar to how graph patterns are defined in
 sub-graph isomorphism problems, but allowing users to provide additional constraints on
 time.
@@ -98,6 +104,8 @@ and time intervals that serve as temporal constraints. In the computations and o
 
 \noindent {\bf Remark:} the definition above can be incorporated easily into
 SPARQL. We can investigate the details when we settle on the definition.
+
+\subsection{Temporal Graph Pattern Matching}
 
 \begin{defn}
   \label{defn:match}
@@ -186,15 +194,16 @@ We next define a few {\bf {\em implicit temporal semantics}} as remedy.
 
 \begin{defn}
   \label{def:concur}
-  Given a temporal graph $G$, we say that the graph is {\bf concurrent} if
+  Given a temporal graph $G$, we say that the graph is {\bf concurrent} (denoted \textsc{concur}) if
   $\displaystyle\bigcap_{e \in E_G}T(e) \neq \emptyset$.
 \end{defn}
 
 \begin{defn}
   \label{def:consec}  
   Given a temporal graph $G$, we say that the graph is \textbf{weakly
-    consecutive} if for every $e_1 = (w,u, \ts_1 , \tf_1), e_2 = (u,v, \ts_2, \tf_2 \in
-  E_G$, $\tf_2 \geq \ts_1$, where we say it is {\bf strongly consecutive} if for
+    consecutive} (denoted \textsc{Wconsec}) if for every $e_1 = (w,u, \ts_1 , \tf_1), 
+    e_2 = (u,v, \ts_2, \tf_2 \in   E_G$, $\tf_2 \geq \ts_1$, where we say it is 
+    {\bf strongly consecutive} (denoted \textsc{Sconsec} ) if for
   any $e_1 = (w,u), e_2=(u,v) \in E_G$, $T(e_1) \cap T(e_2) \neq \emptyset$.
 \end{defn}
 
@@ -202,7 +211,10 @@ We next define a few {\bf {\em implicit temporal semantics}} as remedy.
 If a temporal graph $G$ is strongly consecutive, it must be weakly consecutive.
 \end{lemma}
 
-Hence, we can define {\bf {\em implicit temporal semantics}} to demand that
+We use $\ImpTC$ to represent the set of implicit temporal constraints. $\ImpTC 
+=   \{\textsc{concur}, \textsc{Sconsec}, \textsc{Wconsec}\}. 
+
+Now, we can define {\bf {\em implicit temporal semantics}} to demand that
 resultant matching sub-graph be \textbf{concurrent}, \textbf{weakly
   consecutive}, or \textbf{strongly consecutive}.
 
@@ -233,5 +245,12 @@ resultant matching sub-graph be \textbf{concurrent}, \textbf{weakly
           and circle in query patterns, which are usually very small. This will
           allow us to strength the temporal constraints based on the properties
           described in the conjectures to enhance filtering.
-
 \end{itemize}
+
+We now define a few functions that apply the implicit temporal semantics. 
+
+\begin{defn}
+Given a temporal graph $G$, and a set of edges $S_e \subseteq E_G$, the function $\tau_B$ is a Boolean function that takes an implicit temporal constraint $c$ and $S_e$ as input and returns true if the edge-induced graph $\pi_{S_e}(G)$ satisfies constraint $c$.
+\end{defn}
+
+
