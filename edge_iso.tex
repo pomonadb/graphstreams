@@ -4,11 +4,12 @@ In this section we want to enumerate the basics of the interval graph method by
 expanding on the matches $h$ we defined above in
 Definition~\ref{defn:match}. Here we introduce the concept of the co-incidence
 interval graph, a derived static graph representing the temporal and incidence
-relationships between the edges of a temporal graph. This interval graph is a
+relationships between th e edges of a temporal graph. This interval graph is a
 lossless encoding (shown to be bijective) of the full temporal graph $G$, which
 allows us to run existing algorithms to find appropriate patterns. However, what
 kind of temporal information it captures is determined by an \textit{temporal
-  condition} $c$, which determines how 
+  condition} $c$, which determines which version of implicit temporal semantics
+is being used.
 
 \begin{defn}
   A temporal condition $c$ is an element of the condition set $\mathcal{C} =

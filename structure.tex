@@ -1,24 +1,27 @@
 \section{Implementation Structure}
 
-Since Ullman's original search-space pruning algorithm published in 1976 there
-has been an influx of new algorithms attempting to find tighter subspaces and
-improved search orders, as well as storing partial results in graph indexes to
-allow for faster access.  The most recent, and fastest algorithms have been in
-the last 8 years. Notably, these are QuickSI, GraphQL, TurboIso, BoostIso, and
-DualIso.
+Since Ullman's original search-space pruning algorithm~\cite{1976-ACMJ-Ullman}
+published in 1976 there has been an influx of new algorithms attempting to find
+tighter subspaces and improved search orders, as well as storing partial results
+in graph indexes to allow for faster access.  The most recent, and fastest
+algorithms have been in the last 8 years. Notably, these are
+QuickSI~\cite{2008-VLDB-QuickSI}, GraphQL~\cite{2008-SIGMOD-GraphQL},
+TurboIso~\cite{2013-SIGMOD-TurboISO}, BoostIso~\cite{2015-VLDB-BoostIso}, and
+DualIso~\cite{2014-IEEE-DualIso}.
 
-A 2012 comparison of existing algorithms concluded that QuickSI, and GraphQL
-were the fastest from among other algorithms including GADDI, SPath, and
-VF2. It created a common framework for all of the algorithms, that allowed for a
-more comprehensive understanding of the way in which these graphs are being
+A 2012 comparison of existing algorithms~\cite{2012-VLDB-IsoSurvey} concluded
+that QuickSI, and GraphQL were the fastest from among other algorithms including
+GADDI, SPath~\cite{2010-VLDB-SPath}, and VF2~\cite{2004-PAMI-VF2}. It created a
+common framework for all of the algorithms, that allowed for a more
+comprehensive understanding of the way in which these graphs are being
 queried. It is essentially broken up into four steps. \textsc{FilterCandidates},
 which performs a label search on a given vertex.  Once this has been performed
 for all vertices, the recursive subroutine \textsc{SubgraphSearch} is
 called. Within this routine, there is the function \textsc{NextQueryVertex},
 which determines the search order of the query graph, \textsc{IsJoinable}, which
 determines whether the proposed match is actually viable, \textsc{UpdateState},
-which updates the mapping with the joinable pair, then the recursive call, and finally,
-\textsc{RestoreState}, which removes the pair from the mapping. This is
+which updates the mapping with the joinable pair, then the recursive call, and
+finally, \textsc{RestoreState}, which removes the pair from the mapping. This is
 explicitly stated in Algorithm~\ref{alg:gen_query_proc}.
 
 \begin{algorithm}
