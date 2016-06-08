@@ -173,3 +173,7 @@ TSWLatexianTemp*
 
 # KBibTeX
 *~*
+
+#temp files
+*[#]*[#]*
+.*[#]*

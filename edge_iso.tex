@@ -1,0 +1,117 @@
+\section{Edge Isomorphism}
+
+In this section we want to enumerate the basics of the interval graph method by
+expanding on the matches $h$ we defined above in
+Definition~\ref{defn:match}. Here we introduce the concept of the co-incidence
+interval graph, a derived static graph representing the temporal and incidence
+relationships between the edges of a temporal graph. This interval graph is a
+lossless encoding (shown to be bijective) of the full temporal graph $G$, which
+allows us to run existing algorithms to find appropriate patterns. However, what
+kind of temporal information it captures is determined by an \textit{temporal
+  condition} $c$, which determines how 
+
+\begin{defn}
+  A temporal condition $c$ is an element of the condition set $\mathcal{C} =
+  \{\textsc{concur}, \textsc{Sconsec}, \textsc{Wconsec}\}$,that determine the
+  temporal logic to be applied. This is essentially an \emph{\texttt{enum}} type that
+  will allow the user to switch between the different implicit semantics as
+  defined in Definitions \ref{def:concur} and \ref{def:consec}.
+\end{defn}
+
+\begin{defn}
+  The function $\tau_B : \mathcal{C} \times P(T^2) \to \textbf{2}$ determines
+  whether a set of of edges adhere to the given temporal condition.
+\end{defn}
+
+\begin{defn}
+  \label{def:ci_graph}
+  The co-incidence interval graph, $\I_G^c$ of a graph $G = (V,E)$ under
+  temporal condition $c$, is a tuple $\I_G^c = (E, \E)$, where $E$ is the edge
+  set of the graph $G$ (and the vertex set of $I_G^c$, and $\E \subseteq E^2$ is
+  the set of ``meta-edges'' between the edges of $G$ (vertices of
+  $I_G^c$). There is an edge between $e,f \in E$ exactly when
+  \begin{itemize}
+    \item $e$ and $e'$ share an endpoint, and
+    \item $\tau_B(c,\{e,e'\})$ returns \emph{True}
+  \end{itemize}
+
+  Let the function that computes this graph under the condition $c$ be $I_c$.
+\end{defn}
+
+The generic nature of this definition of the coincidence interval graph allows
+for the user to define \textit{how} the contemporaneity of the query can be
+defined. Simply, this can be extended to define the \textit{\bf implicit
+  temporal semantics} of the resultant query.
+
+\todo[inline]{example}
+
+\begin{lemma}
+  \label{lem:ci_biject}
+  Given a contemporaneity condition $c$, the function $I_c$ is a bijection over
+  graphs with $\delta(G) \geq 1$.
+\end{lemma}
+
+\begin{proof}[Proof] Since surjectivity is evident from
+  Definition~\ref{def:ci_graph}i we will only show Injectivity.
+  
+  \textit{Injectivity}. All of the information necessary to restore a graph is
+  stored in the edge-set, since there is no vertex that is not an endpoint of an
+  edge. Thus, if $I_c(G) = I_c(H)$, then $V(I_c(G)) = E(G) = E(H) = V(I_c(H))$,
+  and so $G = H$.
+\end{proof}
+
+\clearpage
+\noindent \textbf{Remarks:}
+\begin{itemize}
+  \item Note that we didn't use the edge set of $\I^c_G$ at all in the proof
+    above. This is because all of the structural information needed to describe
+    the graph $G$ is stored in the edge set (labels are handled by an external
+    map $L$).
+  \item Note that Lemma~\ref{lem:ci_biject} only holds for graphs with
+    $\delta(G) \geq 1$. This is because if there is a vertex that has degree
+    zero, there is no edge that knows about it. This could be solved if you
+    wanted to keep track of these vertices in $\I^c_G$. (Its also very unlikely
+    for interesting large graphs for singletons to be of any use or
+    importance. They will only be returned in trivial queries such as the empty
+    graph or singletons).
+\end{itemize}
+
+The construction of this graph (as defined in Algorithm \ref{alg:ci_graph}) is a
+fairly straightforward algorithm (and in fact is $O(|E|d_{\max}(G))$ in the
+edge-relational representation of the graph). A quick corollary of Lemma
+\ref{lem:ci_biject} is that given a condition $c$, if there exists some
+isomorphism $f_c : \I^c_G \to \I^c_H$, then $I_c^{-1} \circ f_c \circ I_c : G
+\to H$ is also an isomorphism.
+
+\begin{algorithm}
+  \label{alg:ci_graph}
+  \caption{\textsc{MakeCoincidenceInterval($G$, $c$)}, equivalently $I_C(G)$}
+  \SetAlgoLined
+  \KwIn{A temporal graph $G = (V,E)$, a contemporaneity condition $c$}
+  \KwOut{The interval coincidence graph $\I^c_G$}
+
+  Initialize $\E$ to $\emptyset$\;
+  \ForEach{edge pair $e = (w,u), f =  (u,v) \in E$}{
+    \If{$\tau_B(c)(\{T(e),T(f)\})$}{
+      Add meta-edge $(e,f)$ to $\E$\;
+    }
+  }
+  \Return $(E, \E)$\;
+\end{algorithm}
+
+\begin{algorithm}
+  \label{alg:ci_graph_inv}
+  \caption{\textsc{UnmakeCoincidenceInterval($I_G^c$, $c$)}, equivalently $I_c^{-1}(\I_G^c)$ }
+  \KwIn{The coincidince interval graph $\I_G^c$, $c$}
+  \KwOut{The original graph $G$}
+
+  Initialize $V$ and $E$ to $\emptyset$\;
+  
+  \ForEach{edge $(u,v) \in V(I_G^c)$}{
+    Add $u$ and $v$ to $V$\;
+    Add $(u,v)$ to $E$\;
+  }
+  \Return $(V,E)$\;
+\end{algorithm}
+
+
