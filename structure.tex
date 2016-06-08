@@ -16,14 +16,18 @@ GADDI, SPath~\cite{2010-VLDB-SPath}, and VF2~\cite{2004-PAMI-VF2}. It created a
 common framework for all of the algorithms, that allowed for a more
 comprehensive understanding of the way in which these graphs are being
 queried. It is essentially broken up into four steps. \textsc{FilterCandidates},
-which performs a label search on a given vertex.  Once this has been performed
+which performs a label search on a given edge.  Once this has been performed
 for all vertices, the recursive subroutine \textsc{SubgraphSearch} is
-called. Within this routine, there is the function \textsc{NextQueryVertex},
+called. Within this routine, there is the function \textsc{NextQueryEdge},
 which determines the search order of the query graph, \textsc{IsJoinable}, which
 determines whether the proposed match is actually viable, \textsc{UpdateState},
 which updates the mapping with the joinable pair, then the recursive call, and
 finally, \textsc{RestoreState}, which removes the pair from the mapping. This is
-explicitly stated in Algorithm~\ref{alg:gen_query_proc}.
+explicitly stated in Algorithm~\ref{alg:gen_query_proc}. Note that a key
+difference between this algorithm and the one presented in
+\cite{2012-VLDB-IsoSurvey} is that here we have an algorithm that finds an
+edge-mapping as opposed to a vertex-mapping, and so the structure is slightly
+different. 
 
 \begin{algorithm}
   \label{alg:gen_query_proc}
@@ -33,9 +37,9 @@ explicitly stated in Algorithm~\ref{alg:gen_query_proc}.
   \KwOut{All subgraph ismorphisms of $Q$ in $G$}
 
   Initialize the Mapping $M$ to $\emptyset$\;
-  \ForEach{$u \in V(Q)$}{
-    $\Phi(u)$ \texttt{:=} \textsc{FilterCandidates}$(G,Q,u, \cdots )$\;
-    \If{$\Phi(u) = \emptyset$}{ \Return{} \; }
+  \ForEach{$e \in E(Q)$}{
+    $\Phi(e)$ \texttt{:=} \textsc{FilterCandidates}$(G,Q,e, \cdots )$\;
+    \If{$\Phi(e) = \emptyset$}{ \Return{} \; }
   }
 
   \textsc{SubgraphSearch}$(Q,G,M,\Phi, \cdots)$\;
@@ -43,16 +47,16 @@ explicitly stated in Algorithm~\ref{alg:gen_query_proc}.
   \setcounter{AlgoLine}{0}
   \SetKwProg{subroutine}{Subroutine}{}{}
   \subroutine{\textsc{SubgraphSearch}$(Q,G,M,\Phi, \cdots)$}{
-    \eIf{$|M| = |V(Q)|$}{
+    \eIf{$|M| = |E(Q)|$}{
       \textbf{Report} $M$\;
     }{
-      $u$ \texttt{:=} \textsc{NextQueryVertex} $(\cdots)$\;
-      $\Phi'(u)$ \texttt{:=} \textsc{RefineCandidates} $(M,u, \Phi(u), \cdots)$\;
-      \ForEach{$v \in \Phi'(u)$ that is not yet matched}{
-        \If{\textsc{IsJoinable}$(Q,G,u,v, \cdots )$}{
-          \textsc{UpdateState}$(M,u,v, \cdots )$\;
+      $e$ \texttt{:=} \textsc{NextQueryEdge} $(\cdots)$\;
+      $\Phi'(e)$ \texttt{:=} \textsc{RefineCandidates} $(M,u, \Phi(e), \cdots)$\;
+      \ForEach{$f \in \Phi'(e)$ that is not yet matched}{
+        \If{\textsc{IsJoinable}$(Q,G,e,f, \cdots )$}{
+          \textsc{UpdateState}$(M,e,f, \cdots )$\;
           \textsc{SubgraphSearch}$(Q,G,M, \cdots)$\;
-          \textsc{RestoreState}$(M,u,v, \cdots )$\;
+          \textsc{RestoreState}$(M,e,f, \cdots )$\;
         }
       }
     }
@@ -61,7 +65,8 @@ explicitly stated in Algorithm~\ref{alg:gen_query_proc}.
 
 In the next section we will detail how to go about developing this framework for
 existing graphs. Specifically, how we can use temporal information to further
-restruct the search space for existing algorithmic paradigms.
+restrict the search space for existing algorithmic paradigms.
 
 \input{postcondition}
+\input{naive_filter_candidates}
 \input{naive_joinable}
