@@ -4,16 +4,24 @@ In this section, we provide a set of formal definitions of temporal graph and
 temporal graph query. Then, we will discussion different semantics for
 interpreting the graph pattern matching problem on temporal graphs.
 
-A temporal graph is a graph that is annotated with time (of domain
-$\Z$). Formally,
+
+Given two time intervals $T_1,T_2  \in \N^2$, we define the following predicates and computation:
+\begin{itemize}
+	\item $\pi_1(T_1) =\ts_1$, and $\pi_2(T_1) = \tf_1$;
+  	\item $T_1 = T_2 \Leftrightarrow \ts_1 = \ts_2 \wedge \tf_1 = \tf_2$;
+	\item $T_1 \subseteq T_2 \Leftrightarrow \ts_1 \ge \ts_2 \wedge \tf_1 \le \tf_2$;  
+ 	\item $T_1 \cap T_2 = (max(\ts_1, \ts_2), min(\tf_1, \tf_2))$;
+	\item $T_1 \cup T_2 = (min(\ts_1, \ts_2), max(\tf_1, \tf_2))$;
+\end{itemize}
+
+A temporal graph is a node and edge-labeled graph that is annotated with time intervals. Formally,
 
 \begin{defn}
-  A \textbf{temporal graph} is a node and edge labeled $G = (V_G,E_G)$ where
-  $V_G$ is the set of vertices, and $E_G \subset V^2\times \Z^2$ is the set of
-  edges. A label function $L_G$ maps each node and each edge to its label.
+  A \textbf{temporal graph} is a node and edge labeled $G = (V_G, E_G, L_G)$ where
+  $V_G$ is the set of vertices, and $E_G \subset V_G^2 \times \N^2$ is the set of
+  edges, and $L_G: V_G \cup E_G \rightarrow \Lb$ is a label function that maps each node and each edge to a label in domain $\Lb$.
   
-  Associated with each edge $e$ is  a time interval $(ts_e, tf_e)$, which 
-  we call the {\bf active period} of the edge. 
+ We call the time interval $(\ts, \tf)$ associated with each edge $e$   the {\bf active period} of $e$. 
 \end{defn}
 
   We provide a few helper functions to obtain the end nodes of each edge and the
@@ -26,22 +34,13 @@ $\Z$). Formally,
           v$.
   \end{itemize}
   
-   $\T : E \to \Z^2$ is a function that for any $e \in E_G$, $\T(e) = (ts_e,
-  tf_e)$.
+$\T : E \to N^2$ is a function retrieve the active period for an edge $e \in E_G$, $\T(e) = (\ts_e, \tf_e)$.
 
-  We provide two helper function $\T_s$ and $\T_f$ that return the start and
-  finish time of the active period of an edge: $\T_s(e) = ts_e$ and $\T_f(e) =
-  tf_e$.
+We provide two helper function $\T_s$ and $\T_f$ that return the start and
+  finish time of the active period of an edge: $\T_s(e) = \pi_1(T(e))$ and $\T_f(e) =
+  \pi_2(T_(e))$.
   
-  Given two time intervals $T_1=(ts_1, tf_1)$ and $T_2 =(ts_2, tf_2)$, we define
-  the following predicates and computation:
-  \begin{itemize}
-  	\item  $T_1 = T_2 \Leftrightarrow ts_1 = ts_2 \wedge tf_1 = tf_2$;
-	\item $T_1 \subseteq T_2 \Leftrightarrow ts_1 \ge ts_2 \wedge tf_1 \le tf_2$;  
- 	\item $T_1 \cap T_2 = (max(ts_1, ts_2), min(tf_1, tf_2))$;
-\end{itemize}
 
- A time interval $ (ts, tf) = \emptyset$, if $tf<ts$.
 \SmallSpace
 
 \noindent{\bf Remarks:} 
@@ -50,13 +49,13 @@ $\Z$). Formally,
 	\item $G$ is not necessarily connected. 
 	
 	\item There maybe more than one edge between a pair of nodes, bearing
-          different active period $(t_s, t_f)$.
+          different active period $(\ts, \tf)$.
 		
 	\item For each pair of edges $e_1$ and $e_2$ between the same pair of
           nodes $(u,v)$ that have the same edge label, we can assume that the
           active period of the edges do not overlap, e.g., $\T(e_1) \cap \T(e_2)
           = \emptyset$, since if they do overlap, we can combine the two edges
-          to form one whose active period is the union of the two.
+          to form one whose active period is $\T(e_1) \cup \T(e_2)$.
 
 	\item There can be many simplified versions of the node and edge
           labeling. For instance, only nodes are labeled, but edges are not,
@@ -68,35 +67,34 @@ $\Z$). Formally,
 	\item In this definition, $G$ is a directed graph.  To make it
           undirected, we can
 	\begin{itemize}
-		\item define $E \subseteq P^2(V) \times \Z^2$, where $P^2(V)$ is
+		\item define $E \subseteq P^2(V) \times \N^2$, where $P^2(V)$ is
                   the powerset of size two over the naturals.
-		\item require that $(u,v,t_s,t_f) \in E_G \rightarrow
-                  (v,u,t_s,t_f) \in E_G$
+		\item require that $(u,v, \ts, \tf ) \in E_G \rightarrow
+                  (v,u,\ts, \tf) \in E_G$
 	\end{itemize}
 \end{enumerate}
 
 We define graph patterns in a way similar to how graph patterns are defined in
-SPARQL-like queries, but allowing users to provide additional constraints on
+sub-graph isomorphism problems, but allowing users to provide additional constraints on
 time.
 
 \begin{defn}
   A {\bf temporal graph query $q = <G_q, T_q>$} consists of a graph pattern
   $G_q$ and a time interval $T_q$.
 
-Both the start and finish time of $\T_q$ can be a constant or ?.
+$\T_q \in (\N \cup \{?\})^2$ is  called the {\bf global temporal constraint} of $q$.
 
-The graph pattern is a connected graph $G_q = (V_q, E_q)$, where $V_q$ is the
-set of nodes and $E_q$ is the set of edges. A label function $L_q$ maps each
-node/edge to its label, which can also be ?. Associated with each edge in $E_q$,
-user can also provide a temporal constraint in the form of a time interval,
-again, both the start and finish time can be a constant or ?.
+The graph pattern is a connected graph $G_q = (V_q, E_q, L_q)$, where $V_q$ is the
+set of nodes and $E_q \in V_q^2 \times (\N \cup \{?\})^2$ is the set of edges, and $L_q: V_q \cup E_q \rightarrow \Lb \cup \{?\}$ is a label function  that maps each
+node/edge to a label in $\L$ or ?. 
 
-We call $T_q$ the {\bf global temporal constraint} of $q$ and $T(e_q)$ for each
-$e_q \in E_q$ the {\bf local temporal constraints}.
+Associated with each edge in $E_q$, user can also provide a temporal constraint 
+in the form of a time interval, again, both the start and finish time can be a constant or ?.
+We call  $T(e_q)$ for each $e_q \in E_q$ the {\bf local temporal constraints}.
 \end{defn}
 
 We overload the helper functions introduced earlier to apply to graph pattern
-and time intervals that serve as temporal constraints.
+and time intervals that serve as temporal constraints. In the computations and operations associated with time intervals, $?$ is interpreted as $-\infty$ when used as start time, and $\infty$ when used as finish time. 
 
 \noindent {\bf Remark:} the definition above can be incorporated easily into
 SPARQL. We can investigate the details when we settle on the definition.
@@ -112,13 +110,13 @@ SPARQL. We can investigate the details when we settle on the definition.
     \item for each node $v_q \in V_q$, the mapping of the outgoing and incoming
       edges of $v_q$ share the same end node $v_G \in V_G$ and the node label
       predicate associated with $v_q$ is satisfied by $v_G$. Formally, for any
-      two edges $e_1, e_2 \in E_q$, if $\pi_i(e_1) = \pi_j(e_2)$, where , $i ,j$
+      two edges $e_1, e_2 \in E_q$, if $\pi_i(e_1) = \pi_j(e_2)$, where $i ,j$
       can be 0 or 1, the following must hold: $\pi_i(h(e_1)) = \pi_j(h(e_2))$.
 \end{itemize}
 \end{defn}
 
 Please note that the definition of matching is the same as pattern matching
-defined for SPARQL-like graph queries. The new problem is how we can take the
+defined for conjunctive queries on graphs. The new problem is how we can take the
 temporal constraints into consideration, which will be defined next.
 
 Note that we allow users to provide temporal constraints in the form of a time
@@ -195,10 +193,14 @@ We next define a few {\bf {\em implicit temporal semantics}} as remedy.
 \begin{defn}
   \label{def:consec}  
   Given a temporal graph $G$, we say that the graph is \textbf{weakly
-    consecutive} if for every $e = (w,u,t_s, t_f), e' = (u,v,t_s', t_f') \in
-  E_G$, $t_f' \geq t_s$, where we say it is {\bf strongly consecutive} if for
-  any $e = (w,u), e'=(u,v) \in E_G$, $T(e) \cap T(e') \neq \emptyset$.
+    consecutive} if for every $e_1 = (w,u, \ts_1 , \tf_1), e_2 = (u,v, \ts_2, \tf_2 \in
+  E_G$, $\tf_2 \geq \ts_1$, where we say it is {\bf strongly consecutive} if for
+  any $e_1 = (w,u), e_2=(u,v) \in E_G$, $T(e_1) \cap T(e_2) \neq \emptyset$.
 \end{defn}
+
+\begin{lemma}
+If a temporal graph $G$ is strongly consecutive, it must be weakly consecutive.
+\end{lemma}
 
 Hence, we can define {\bf {\em implicit temporal semantics}} to demand that
 resultant matching sub-graph be \textbf{concurrent}, \textbf{weakly
@@ -209,9 +211,9 @@ resultant matching sub-graph be \textbf{concurrent}, \textbf{weakly
  \begin{enumerate}
 	\item If the graph $G$ is of star shape, e.g., there exist a center node
           $u$ such that for any other nodes $v$ there exists an edge between $u$
-          and $v$, then, $G$ is concurrent iff $G$ is consecutive.
+          and $v$, and if the in-degree of $u>0$, then, $G$ is concurrent iff $G$ is consecutive.
 	\item If the graph $G$ is a clique, then, $G$ is concurrent iff $G$ is
-          consecutive.2
+          consecutive.
 	\item If there exists a circle that traverse through all nodes in $G$,
           then, there exist an edge on this circle whose active period dominates
           those of all other edges on the circle.
@@ -221,7 +223,9 @@ resultant matching sub-graph be \textbf{concurrent}, \textbf{weakly
 \noindent {\bf Remarks:}
 \begin{itemize}
 	\item Whether these conjectures are true or not may depend on whether
-          the graph is directed or undirected.
+          the graph is directed or undirected.\\
+          	If a graph is connected, it is a start shape, but all edges going out, e.g., there is no pairs of edges that have tail-to-head connection, is it consecutive? apparently it satisfy our definition. 
+        
 	\item Either we need to find some work that has proved them, or to prove
           them, which should not be hard.
 	\item These conjectures, if proved true, can be used to speed up query
