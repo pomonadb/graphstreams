@@ -189,17 +189,20 @@ We next define a few {\bf {\em implicit temporal semantics}} as remedy.
 \begin{defn}
   \label{def:concur}
   Given a temporal graph $G$, we say that the graph is {\bf concurrent} if
-  $\displaystyle\bigcap_{e \in E_G}T(e) \not= \emptyset$.
+  $\displaystyle\bigcap_{e \in E_G}T(e) \neq \emptyset$.
 \end{defn}
 
 \begin{defn}
-  \label{def:consec}
-  Given a temporal graph $G$, we say that the graph is {\bf consecutive} if for
-  any $e_1 = (w,u) ,e_2=(u,v) \in E_G$, $T(e_1) \cap T(e_2) \not= \emptyset$.
+  \label{def:consec}  
+  Given a temporal graph $G$, we say that the graph is \textbf{weakly
+    consecutive} if for every $e = (w,u,t_s, t_f), e' = (u,v,t_s', t_f') \in
+  E_G$, $t_f' \geq t_s$, where we say it is {\bf strongly consecutive} if for
+  any $e = (w,u), e'=(u,v) \in E_G$, $T(e) \cap T(e') \neq \emptyset$.
 \end{defn}
 
 Hence, we can define {\bf {\em implicit temporal semantics}} to demand that
-resultant matching sub-graph be {\bf concurrent }or {\bf consecutive}.
+resultant matching sub-graph be \textbf{concurrent}, \textbf{weakly
+  consecutive}, or \textbf{strongly consecutive}.
 
 \SmallSpace
 \noindent {\bf Conjectures:}
@@ -208,7 +211,7 @@ resultant matching sub-graph be {\bf concurrent }or {\bf consecutive}.
           $u$ such that for any other nodes $v$ there exists an edge between $u$
           and $v$, then, $G$ is concurrent iff $G$ is consecutive.
 	\item If the graph $G$ is a clique, then, $G$ is concurrent iff $G$ is
-          consecutive.
+          consecutive.2
 	\item If there exists a circle that traverse through all nodes in $G$,
           then, there exist an edge on this circle whose active period dominates
           those of all other edges on the circle.
