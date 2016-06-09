@@ -8,8 +8,9 @@ a temporal index?  We start with the observation that each edge is a tuple in
 $V^2 \times \T^2$. Similar to how adjacency matrices model the
 edge-relationships in the 2 dimensional space $V^2$, we can create the
 2-dimensional space $T^2$, where each time window represents a region in this
-space. For any given edge $e = (u,v, t_s, t_e)$, we will create a 2-dimensional
-box $b(e)$ bounded by the system
+space. Then the obvious solution is to create a spatial index. For any given
+edge $e = (u,v, t_s, t_e)$, we will create a 2-dimensional box $b(e)$ bounded by
+the system
 \[b((u,v, t_s, t_e)) =
   \begin{cases}
     x \leq t_e \\
@@ -20,10 +21,11 @@ box $b(e)$ bounded by the system
 \]
 
 Notice that $T(e) \cap T(f) \neq \emptyset$ for $e,f$ edges, if and only if
-$b(e)$ and $b(f)$ overlap. We can then use an R+Tree to index this space. In
-this form, this tool is only useful for when we consider $c = \texttt{concur},
-\texttt{Sconsec}$.  More robustly we can create a specific index for when $c =
-\texttt{Wconsec}$, in which case we will generate the 2 dimensional space
+$b(e)$ and $b(f)$ overlap. We can then use an RTree \cite{1984-SIGMOD-RTree} to
+index this space. In this form, this tool is only useful for when we consider $c
+= \texttt{concur}, \texttt{Sconsec}$.  More robustly we can create a specific
+index for when $c = \texttt{Wconsec}$, in which case we will generate the 2
+dimensional space
 \[ \begin{cases}
      x \leq t_e \\
      y \leq t_e
@@ -36,7 +38,6 @@ on the contemporaneity condition $c \in \C$.
 Also, note that this index can be used for much more than just representing the
 edges in the graphs, it can also be used for indexing subgraphs based on the output
 of $\tau_f(c)$.  Then, for any edge that we are curious about adding, we can use
-the index to figure out which edges statisfy the temporal condition. \todo{Read
-  and cite the R+Tree paper}
+the index to figure out which edges statisfy the temporal condition.
 
   
