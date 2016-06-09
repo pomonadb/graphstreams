@@ -3,13 +3,11 @@
 In this section we want to enumerate the basics of the interval graph method by
 expanding on the matches $h$ we defined above in Definition~\ref{defn:match}. 
 
-We introduce the concept of the {\bf {\em co-incidence
-interval graph}, a derived static graph representing the temporal and incidence
-relationships between adjacent edges of a temporal graph. This interval graph is a
-lossless encoding (shown to be bijective) of the full temporal graph $G$, which
-allows us to run existing algorithms to find appropriate patterns.  
-
- 
+We introduce the concept of the {\bf {\em co-incidence interval graph}, a
+  derived static graph representing the temporal and incidence relationships
+  between adjacent edges of a temporal graph. This interval graph is a lossless
+  encoding (shown to be bijective) of the full temporal graph $G$, which allows
+  us to run existing algorithms to find appropriate patterns.}
 
 \begin{defn}
   \label{def:ci_graph}
@@ -36,18 +34,17 @@ implicit temporal semantics defined earlier.
 \begin{lemma}
   \label{lem:ci_biject}
   Given an implicit temporal constraint $c$, the function $I_c$ is a bijection over
-  graphs with $\delta(G) \geq 1$.
+  unlabelled\footnote{This is a trivial extension that only serves to complicate the proof. The lemma indeed holds for labelled graphs as well.} graphs $G$ with $\delta(G) \geq 1$.
 \end{lemma}
 
-\begin{proof}[Proof] Surjectivity follows the definition of function $I_c$, so,   we will only show Injectivity.
+\begin{proof}[Proof] Surjectivity follows the definition of function $I_c$, so,
+  we will only show Injectivity.
   
-  \textit{Injectivity}. All of the information necessary to restore the temporal graph $G$ is
-  stored in the edge-set $E$, since there is no vertex that is not an endpoint of an
-  edge. Thus, if $I_c(G) = I_c(H)$, then $V(I_c(G)) = E(G) = E(H) = V(I_c(H))$,
-  hence $G = H$.
+  \textit{Injectivity}. All of the information necessary to restore the temporal
+  graph $G$ is stored in the edge-set $E$, since there is no vertex that is not
+  an endpoint of an edge. Thus, if $I_c(G) = I_c(H)$, then $V(I_c(G)) = E(G) =
+  E(H) = V(I_c(H))$, hence $G = H$.
 \end{proof}
-
-\reminder{how do we store the node label of the original graph $G$ in $I_c(G)$? we can restore all the identification of the nodes, but can we also restore the node labels?}
 
 \clearpage
 \noindent \textbf{Remarks:}
