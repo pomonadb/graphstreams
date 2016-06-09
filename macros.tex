@@ -1,8 +1,10 @@
 % -----------------------------
 % general editing macros
 % -----------------------------
+\newcommand{\blue}[1] {{\color{blue} #1}}
+\newcommand{\red}[1] {{\color{red} #1}}
 
-\newcommand{\reminder}[1]{ [[[ \marginpar{\mbox{$<==$}} #1 ]]] }
+\newcommand{\reminder}[1]{ [[[ \marginpar{\mbox{$<==$}} \red{#1} ]]] }
 \newcommand{\ignore}[1]{}
 \newcommand{\BigCrunch}{\vspace*{-2em}}
 \newcommand{\Crunch}{\vspace*{-1em}}
@@ -10,6 +12,10 @@
 \newcommand{\TinyCrunch}{\vspace*{-0.1em}}
 \newcommand{\Space}{\vspace*{1em}}
 \newcommand{\SmallSpace}{\vspace{0.06in}}
+
+ 
+
+
 % -----------------------------
 % macros for environments
 % -----------------------------
