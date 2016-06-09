@@ -11,10 +11,13 @@ of VF2 \cite{2016-arXiv-TemporalIso}.
 
 The purpose of the function \textsc{FilterCandidates} is to provide a
 label-based index-boosted search of potential candidates for the input edge
-$e$. Most algorithms\todo{cite which} will only perform a label search. We can
-extend this basic label search to include some basic temporal information. If
-for an edge $e$ in the query graph and a potential candidate $f$ in the data
-graph, if there is some temporal information $T(e)$, then we will enforce
+$e$. Some algorithms \ref{1976-ACMJ-Ullman, 2009-EDBT-GADDI, 2008-VLDB-QuickSI}
+will only perform a label search. while others will perform some signature based
+pruning \ref{2010-VLDB-SPath,2008-SIGMOD-GraphQL}, and still others perform
+transformations on the query and data graphs \ref{2013-SIGMOD-TurboISO, 2015-VLDB-BoostIso}. We can
+extend the basic label search to include some basic temporal information. If for
+an edge $e$ in the query graph and a potential candidate $f$ in the data graph,
+if there is some temporal information $T(e)$, then we will enforce
 $\tau_b(c)(\{T(e), T(f)\})$. In the GraphQL algorithm, a function that discounts
 candidates based on signatures is composed with the standard label-index. We
 discuss our version of this algorithm in Section~\ref{sec:encoding}. The
