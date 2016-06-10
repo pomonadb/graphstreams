@@ -1,0 +1,152 @@
+\subsection{Preprocessing on Query Graph}
+
+Oftentimes a query graph will have contradictory or superfluous temporal
+information, for example, the local interval of a given edge may not intersect
+at all with the temporal condition or the local intervals given will preclude
+the explicit semantics, in which case, we can reject the query instantly with a
+null result.
+
+Another interesting situation is when, for a given query $<Q, T_q,
+\intersection, \concurrent>$\todo{change earlier definition to reflect this
+  definition}, and some edge $e \in E(G)$ with $T(e) \neq T(e) \cap T_q \neq
+\emptyset$. Then, if we enforce the \intersection{} semantics, we do not need to
+consider, for the edge $e$, the part of the interval $T(e) - T_q$, so we can
+update $T(e)$ to be $T(e) \cap T_q$.
+
+Further, we need to consider the way that the \concurrent{} semantics will
+propogate to the neighbors of $e$. For this case, we need to enforce the
+\intersection{} semantics for every edge in $Q$, meaning that we can rewrite
+each $T(e)$ to be $T_q \cap \bigcap_{e' \in E} T(e')$. Of course for the
+$\exact$ semantics this loses pruning power, since we can just test perform an
+index search on the edges of the data-graph to find all time-restricted
+candidates. Similar fo We can perform a similar tightening for every combination
+in $\impTC \times \expTC$.
+
+\begin{center}
+  \begin{tabular}{cc L{7cm}} \toprule
+    $\expTC$      & $\impTC$        & Tightening rules \\ \midrule
+    % data edges within query edges
+    $\contain$    & $\concur$       & rewrite windows to intersection of all edges\\
+                  & $\strongConsec$ & 
+
+    if $\impApprox(\concur)(pred(e)) \cap \impApprox(\concur)(succ(e)) \neq
+    \emptyset$ enforce $\intersection$ with $\impApprox(\concur)(pred(e)) \cap
+    \impApprox(\concur)(succ(e))$ else enforce $\contained$ with $T(e) -
+    \impApprox(\concur)(pred(e)) - \impApprox(\concur)(succ(e))$
+
+    \\
+                  & $\weakConsec$   &  \\
+    % query edges within data edges
+    $\contained$  & $\concur$       & ?? \\
+                  & $\strongConsec$ & ?? \\
+                  & $\weakConsec$   & ??\\
+    % nonempty intersection between data intervals and query intervals
+    $\intersection$  & $\concur$       & ?? \\
+                  & $\strongConsec$ & ?? \\
+                  & $\weakConsec$   & ?? \\
+    
+    \bottomrule
+  \end{tabular}
+\end{center}
+
+We can also identify substructures of the query graph for which the semantic
+conditions are equivalent. What? that's possible? tell me more... Consider the
+following example of a cycle. Its a well-known fact that interval graphs that
+contain a cycle are chordal, so for 2-cycles all three semantics are equivalent,
+and for 3-cycles the \concurrent{} and \strongConsec{} semantics are
+equivalent.
+
+We can also note that for a star in which the in- and out-degrees of the central
+vertex are at least one, the \concurrent{} and \strongConsec{} semantics
+are equivalent.
+
+So, given a specific query, we can decompose it maximually into 2-cycles, and
+3-cycles (i.e. if a 3-cycle contains a 2-cycle add the 3-cycle instead of the
+2-cycle) and enforce the temporal constraints enforced by the tight
+semantics. Note that these are not the only structures for which the semantics
+are the same, but they were the easiest to detect.
+
+\begin{proposition}
+ 3-cycles are the largest structures that allow us to reduce \strongConsec{}
+ semantics to \concurrent{}.
+\end{proposition}
+
+\begin{proof}
+  \todo[inline]{fill in here}.
+\end{proof}
+
+So, we will detect such two and three cycles using an $O(|V_Q||E_Q|)$ method,
+since we are assuming small query graphs with no more than 20 or 30 edges, we
+can store this in memory. The detection algorithm is defined in
+\ref{alg:detect_substructs}. It only makes sense to run this algorithm for
+$\weakConsec$ and $\strongConsec$ since we are attempting to leverage the
+selectivity of the $\concurrent$ semantics.
+
+\begin{algorithm}
+  \label{alg:detect_substructs}
+  \caption{\textsc{DetectSubstructs}}
+  \KwIn{A query graph $Q$ and an implicit semantic $m$}
+  \KwOut{A set of structures reducing to $\concurrent$}
+  \SetAlgoLined
+
+  Let the set of cycles $C$ \texttt{:=} $\emptyset$\;
+  \ForEach{$e = (u,v) \in E(Q)$}{
+    \ForEach{$e' = (v,u) \in E(Q)$}{
+      add $\{e,e'\}$ to $T$\;
+    }
+    \If{$m \neq \weakConsec$}{
+      \ForEach{$w \in V(Q)$}{
+        \ForEach{ pair of edges $e' = (v, w), e'' = (w,u)$}{
+          add $(e,e', e'')$ to $T$\;
+        }
+      }
+    }
+  }
+\end{algorithm}
+
+Then, for each of these substructures $S_e$, we will build a hypernode, given $m
+\in \impTC$, and $x \in \expTC$, $N_{S_e}^{m}$ that reduces to $\concurrent$
+semantics. This hypernode will then have an active window itself.
+
+We will then define a hypernode profile, which is an extended version of the
+temporal profile (see section \ref{sec:encoding}). For a given node $n$, it is a
+tuple of the lexographically ordered labels ($p_s$),
+$\impApprox(\concurrent)(S_e)$, and $\impApprox(m)(S_e)$. When we traverse the
+tree to try and map these vertices, we will need to prune results such that the
+internal edges obey the $\intersection$ explicit semantics with
+$\impApprox(\concurrent)(S_e)$, and the incoming and outgoing edges obey the $m$
+implicit semantics with respect to $\impApprox(m)(S_e)$. Algorithm
+\ref{alg:hypernode_matching} describes the hypernode matching process.
+
+\begin{algorithm}
+  \label{alg:hypernode_matching}
+  \caption{HypernodeMatching}
+
+  \KwIn{A query hypernode $n$ and its profile $(p_s, p_{in}, p_{out})$, a
+    data hypernode $n'$ and its profile $(p'_s, p'_{in}, p'_{out})$, the
+    set of candidate sets $\Phi$}
+
+  \KwOut{The updated candidates sets $\Phi$}
+  \SetAlgoLined
+  
+
+  \If{$p_s \neq p'_s$ or $p_{in} \cap p'_{in} = \emptyset)$ or $|E(n)| \neq |E(q)|$}{
+    \ForEach{$e \in E(n)$}{
+      remove $E(n')$ from $\Phi(e)$\;
+    }
+  }
+\end{algorithm}
+
+Once we have constructed such hypernodes, we can re-tighten the constraints on
+the graph as per the rules defined above.
+
+Further, when traversing the graph, we will enforce, for $f$ an incoming or
+outgoing edge to a matched hypernode in the data graph, $\tau(m)\{T(e),
+p_{out}\}$. And of course if we consider an edge that has is between a node and
+a hyper node, we will not match the two.
+
+
+\noindent\textbf{Remark:} This is all a bit haphazard and messy. The rewrite
+rules are a bit awkward, and theres not an obvious way to extend the reduction
+to $\concurrent$ semantics. Ill look at it again in a few days. \todo{Revisit
+  Tightening rules}
