@@ -1,5 +1,6 @@
 \subsection{Preprocessing on Query Graph}
 
+\subsubsection{Constraint Tightening}
 Oftentimes a query graph will have contradictory or superfluous temporal
 information, for example, the local interval of a given edge may not intersect
 at all with the temporal condition or the local intervals given will preclude
@@ -19,35 +20,35 @@ propogate to the neighbors of $e$. For this case, we need to enforce the
 each $T(e)$ to be $T_q \cap \bigcap_{e' \in E} T(e')$. Of course for the
 $\exact$ semantics this loses pruning power, since we can just test perform an
 index search on the edges of the data-graph to find all time-restricted
-candidates. Similar fo We can perform a similar tightening for every combination
-in $\impTC \times \expTC$.
+candidates. We can perform a similar tightening for almost every combination
+in $\impTC \times \expTC$. Here are the ones for which a tightening makes sense,
+note that after transformation, the explicit and implicit semantics remain the same.
 
 \begin{center}
-  \begin{tabular}{cc L{7cm}} \toprule
-    $\expTC$      & $\impTC$        & Tightening rules \\ \midrule
-    % data edges within query edges
-    $\contain$    & $\concur$       & rewrite windows to intersection of all edges\\
-                  & $\strongConsec$ & 
-
-    if $\impApprox(\concur)(pred(e)) \cap \impApprox(\concur)(succ(e)) \neq
-    \emptyset$ enforce $\intersection$ with $\impApprox(\concur)(pred(e)) \cap
-    \impApprox(\concur)(succ(e))$ else enforce $\contained$ with $T(e) -
-    \impApprox(\concur)(pred(e)) - \impApprox(\concur)(succ(e))$
-
-    \\
-                  & $\weakConsec$   &  \\
-    % query edges within data edges
-    $\contained$  & $\concur$       & ?? \\
-                  & $\strongConsec$ & ?? \\
-                  & $\weakConsec$   & ??\\
-    % nonempty intersection between data intervals and query intervals
-    $\intersection$  & $\concur$       & ?? \\
-                  & $\strongConsec$ & ?? \\
-                  & $\weakConsec$   & ?? \\
-    
+  \begin{tabular}{cc c c} \toprule
+    $\impTC$      & $\expTC$   & start & end \\ \midrule
+    \concurrent   & \contain, \intersect
+      & $\min \left(\bigcap_{e' \in N(e)} T(e')\right)$ 
+      & $\max \left(\bigcap_{e' \in N(e)} T(e') \right)$ \\
+    \strongConsec & \contain, \intersection
+      & $\min \left(\bigcup_{e' \in pred(e)} T(e')\right)$
+      & $\max \left(\bigcup_{e' \in succ(e)} T(e')\right)$ \\
+    \strongConsec & \contained
+      & $\max \left(\bigcup_{e' \in pred(e)} T(e')\right)$
+      & $\min \left(\bigcup_{e' \in succ(e)} T(e')\right)$ \\
     \bottomrule
   \end{tabular}
 \end{center}
+
+The above rewriting rules are only improvements on less restrictive intervals
+and will not always be an improvement on the given rules (except in the case of
+the \concurrent{} semantics. 
+
+\todo[inline]{We need proofs of these.  In an actual paper these should go in an
+Appendix, since for the purpose of the paper we don't care why they exist, just
+that there are such rewrite rules.}
+
+\subsubsection{Hypergraph Compression}
 
 We can also identify substructures of the query graph for which the semantic
 conditions are equivalent. What? that's possible? tell me more... Consider the
@@ -66,10 +67,10 @@ So, given a specific query, we can decompose it maximually into 2-cycles, and
 semantics. Note that these are not the only structures for which the semantics
 are the same, but they were the easiest to detect.
 
-\begin{proposition}
- 3-cycles are the largest structures that allow us to reduce \strongConsec{}
- semantics to \concurrent{}.
-\end{proposition}
+\begin{conjecture}
+  3-cycles are the largest structures (w.r.t. number of vertices) that allow us to
+  reduce \strongConsec{} semantics to \concurrent{}.
+\end{conjecture}
 
 \begin{proof}
   \todo[inline]{fill in here}.
@@ -130,7 +131,7 @@ implicit semantics with respect to $\impApprox(m)(S_e)$. Algorithm
   \SetAlgoLined
   
 
-  \If{$p_s \neq p'_s$ or $p_{in} \cap p'_{in} = \emptyset)$ or $|E(n)| \neq |E(q)|$}{
+  \If{$p_s \neq p'_s$ or $p_{in} \cap p'_{in} = \emptyset)$ or $|E(n)| > |E(n')|$}{
     \ForEach{$e \in E(n)$}{
       remove $E(n')$ from $\Phi(e)$\;
     }
@@ -141,12 +142,5 @@ Once we have constructed such hypernodes, we can re-tighten the constraints on
 the graph as per the rules defined above.
 
 Further, when traversing the graph, we will enforce, for $f$ an incoming or
-outgoing edge to a matched hypernode in the data graph, $\tau(m)\{T(e),
-p_{out}\}$. And of course if we consider an edge that has is between a node and
-a hyper node, we will not match the two.
-
-
-\noindent\textbf{Remark:} This is all a bit haphazard and messy. The rewrite
-rules are a bit awkward, and theres not an obvious way to extend the reduction
-to $\concurrent$ semantics. Ill look at it again in a few days. \todo{Revisit
-  Tightening rules}
+outgoing edge to a matched hypernode in the data graph, $\impApprox(m)\{T(e),
+p_{out}\}$.

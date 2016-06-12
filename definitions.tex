@@ -16,31 +16,34 @@ Given two time intervals $T_1,T_2  \in \N^2$, we define the following predicates
 \end{itemize}
 
 \subsection{Temporal Graph}
-A temporal graph is a node and edge-labeled graph that is annotated with time intervals. Formally,
+A temporal graph is a node and edge-labeled graph that is annotated with time
+intervals. Formally,
 
 \begin{defn}
-  A \textbf{temporal graph} is a node and edge labeled $G = (V_G, E_G, L_G)$ where
-  $V_G$ is the set of vertices, and $E_G \subset V_G^2 \times \N^2$ is the set of
-  edges, and $L_G: V_G \cup E_G \rightarrow \Lb$ is a label function that maps each node and each edge to a label in domain $\Lb$.
+  A \textbf{temporal graph} is a node and edge labeled $G = (V_G, E_G, L_G)$
+  where $V_G$ is the set of vertices, and $E_G \subset V_G^2 \times \N^2$ is the
+  set of edges, and $L_G: V_G \cup E_G \rightarrow \Lb$ is a label function that
+  maps each node and each edge to a label in domain $\Lb$.
   
- We call the time interval $(\ts, \tf)$ associated with each edge $e$   the {\bf active period} of $e$. 
+ We call the time interval $(\ts, \tf)$ associated with each edge $e$ the {\bf
+   active period} of $e$.
 \end{defn}
 
   We provide a few helper functions to obtain the end nodes of each edge and the
   set the outgoing and incoming edges of a node:
   \begin{itemize}
-  	\item given a node $u \in V_G$, $out(u) = \{e \in E_G \ | \,e = (u,v)$
-          for some $v \in V_G\}$; $in(u) = \{e \in E_G \,|\, e = (v,u)$ for some
-          $v \in V_G\}$.
-	\item given an edge $e = (u,v) \in E_G$, $\pi_1(e) = u$ and $\pi_2(e) =
-          v$.
+    \item given a node $u \in V_G$, $out(u) = \{e \in E_G \ | \,e = (u,v)$ for
+      some $v \in V_G\}$; $in(u) = \{e \in E_G \,|\, e = (v,u)$ for some $v \in
+      V_G\}$.
+    \item given an edge $e = (u,v) \in E_G$, $\pi_1(e) = u$ and $\pi_2(e) = v$.
   \end{itemize}
   
-$\T : E \to N^2$ is a function retrieve the active period for an edge $e \in E_G$, $\T(e) = (\ts_e, \tf_e)$.
+$\T : E \to N^2$ is a function retrieve the active period for an edge $e \in
+  E_G$, $\T(e) = (\ts_e, \tf_e)$.
 
 We provide two helper function $\T_s$ and $\T_f$ that return the start and
-  finish time of the active period of an edge: $\T_s(e) = \pi_1(T(e))$ and $\T_f(e) =
-  \pi_2(T_(e))$.
+finish time of the active period of an edge: $\T_s(e) = \pi_1(T(e))$ and
+$\T_f(e) = \pi_2(T_(e))$.
   
 
 \SmallSpace
@@ -48,7 +51,7 @@ We provide two helper function $\T_s$ and $\T_f$ that return the start and
 \noindent{\bf Remarks:} 
 
 \begin{enumerate}
-	\item $G$ is not necessarily connected. 
+	\item $G$ is not necessarily connected.
 	
 	\item There maybe more than one edge between a pair of nodes, bearing
           different active period $(\ts, \tf)$.
@@ -85,23 +88,25 @@ $G$.
 
 \subsection{Temporal Graph Pattern}
 We define graph patterns in a way similar to how graph patterns are defined in
-sub-graph isomorphism problems, but allowing users to provide additional constraints on
-time.
+sub-graph isomorphism problems, but allowing users to provide additional
+constraints on time.
 
 \begin{defn}
   A {\bf temporal graph query $q = <G_q, T_q>$} consists of a graph pattern
   $G_q$ and a time interval $T_q$.
 
-$\T_q \in (\N \cup \{?\})^2$ is  called the {\bf global temporal constraint} of $q$.
+$\T_q \in (\N \cup \{?\})^2$ is called the {\bf global temporal constraint} of
+  $q$.
 
 The graph pattern is a connected graph $G_q = (V_q, E_q, L_q)$, where $V_q$ is
 the set of nodes and $E_q \in V_q^2 \times (\N \cup \{?\})^2$ is the set of
 edges, and $L_q: V_q \cup E_q \rightarrow \Lb \cup \{?\}$ is a label function
 that maps each node/edge to a label in $\L$ or ?.
 
-Associated with each edge in $E_q$, user can also provide a temporal constraint 
-in the form of a time interval, again, both the start and finish time can be a constant or ?.
-We call  $T(e_q)$ for each $e_q \in E_q$ the {\bf local temporal constraints}.
+Associated with each edge in $E_q$, user can also provide a temporal constraint
+in the form of a time interval, again, both the start and finish time can be a
+constant or ?.  We call $T(e_q)$ for each $e_q \in E_q$ the {\bf local temporal
+  constraints}.
 \end{defn}
 
 We overload the helper functions introduced earlier to apply to graph pattern
@@ -116,8 +121,8 @@ SPARQL. We can investigate the details when we settle on the definition.
 
 \begin{defn}
   \label{defn:match}
-  A {\bf match} of a graph pattern $G_q$ in $G$ is a total mapping $h: \{e_q: e_q
-  \in E_q\} \rightarrow \{e_G: e_G \in E_G\} $ such that:
+  A {\bf match} of a graph pattern $G_q$ in $G$ is a total mapping $h: \{e_q:
+  e_q \in E_q\} \rightarrow \{e_G: e_G \in E_G\} $ such that:
 
   \begin{itemize}
     \item for each edge $e_q \in E_q$, the edge label predicate associated with
@@ -131,8 +136,8 @@ SPARQL. We can investigate the details when we settle on the definition.
 \end{defn}
 
 Please note that the definition of matching is the same as pattern matching
-defined for conjunctive queries on graphs. The new problem is how we can take the
-temporal constraints into consideration, which will be defined next.
+defined for conjunctive queries on graphs. The new problem is how we can take
+the temporal constraints into consideration, which will be defined next.
 
 Note that we allow users to provide temporal constraints in the form of a time
 window for the whole pattern and for each edge, but we also provide the
@@ -144,8 +149,10 @@ relaxed, or anywhere in between. Here are some scenarios:
         \item most strict: user specifies explicit global and local temporal
           constraints, and for each constraint specified, the start time is the
           same as the end time.
-	\item most relaxed: user specifies temporal constraints with all ?'s, which means infinity.
-	\item anywhere in between: including the cases in which some temporal constraints contains ?. 
+	\item most relaxed: user specifies temporal constraints with all ?'s,
+          which means infinity.
+	\item anywhere in between: including the cases in which some temporal
+          constraints contains ?.
         \item conflicted: the intersection of the global temporal constraint and
           at least one of the local temporal constraint is empty. {\bf remark:}
           we can easily identify conflict cases and return empty results without
@@ -188,16 +195,16 @@ pattern matching $h$ explicitly satisfies the temporal constraint of $q$ if
 
 
   We will define $\expTC = \{\exact, \contain, \contained, \intersection\}$ to
-  be the set of differentiating identifiers for the explicit semantics.
+  be the set of differentiating identifiers for the explicit semantics, and
+  $\expVar$ to be one of them.
 
-  Finally, we will define a curried function $\expLocal : \expTC \to P(T^2
-  \times T^2) \to \textbf{2}$ which will take an explicit temporal condition
-  return a function that takes a set of pairs of time intervals and determine
-  whether each pair of time intervals satisfies the given temporal semantic. For
-  example $\expLocal(\exact)(\{((1,4),(1,4)), ((2,4),(2,4)) \})$ returns
-  \emph{True}, and $\expLocal(\exact): P(T^2 \times T^2) \to \textbf{2}$ is a
-  function that determines whether a set of pairs of time intervals obeys the
-  \exact{} semantics.
+  Finally, we will define a curried function $\expLocal : \expTC \to P(E^2) \to
+  \textbf{2}$ which will take an explicit temporal condition return a function
+  that takes a set of pairs of time intervals and determine whether each pair of
+  time intervals satisfies the given explicit temporal semantics. Thus, for
+  $\expVar \in \expTC$, $\expLocal(\expVar) : \E^2 \to \textbf{2}$ is a function
+  that takes a set of pairs of edges and determines whether such a mapping is
+  obeys the explicit semantics defined by $\expVar$.
 
 \end{defn}
 
@@ -215,22 +222,27 @@ We next define a few {\bf {\em implicit temporal semantics}} as remedy.
 
 \begin{defn}
   \label{def:concur}
-  Given a temporal graph $G$, we say that the graph is {\bf concurrent} (denoted \concurrent) if
-  $\displaystyle\bigcap_{e \in E_G}T(e) \neq \emptyset$.
+  Given a temporal graph $G$, we say that the graph is {\bf concurrent} (i.e. it
+  satisfies the \concurrent{} implicit semantics) if $\displaystyle\bigcap_{e
+    \in E_G} T(e) \neq \emptyset$.
 \end{defn}
 
 \begin{defn}
   \label{def:consec}  
   Given a temporal graph $G$, we say that the graph is \textbf{weakly
-    consecutive} (denoted \weakConsec{}) if for every $e_1 = (w,u, \ts_1 ,
-  \tf_1), e_2 = (u,v, \ts_2, \tf_2 \in E_G$, $\tf_2 \geq \ts_1$, where we say it
-  is {\bf strongly consecutive} (denoted \strongConsec{} ) if for any $e_1
-  = (w,u), e_2=(u,v) \in E_G$, $T(e_1) \cap T(e_2) \neq \emptyset$.
+    consecutive} (satisfying the \weakConsec{} implicit semantics) if for every
+  $e_1 = (w,u, \ts_1 , \tf_1), e_2 = (u,v, \ts_2, \tf_2 \in E_G$, $\tf_2 \geq
+  \ts_1$, where we say it is {\bf strongly consecutive} (w.r.t the
+  \strongConsec{} implicit semantics) if for any $e_1 = (w,u), e_2=(u,v) \in
+  E_G$, $T(e_1) \cap T(e_2) \neq \emptyset$.
 \end{defn}
 
 \begin{lemma}
 If a temporal graph $G$ is strongly consecutive, it must be weakly consecutive.
 \end{lemma}
+\begin{proof}
+  This is fairly obvious by Definition~\ref{def:consec}.
+\end{proof}
 
 We use $\impTC$ to represent the set of implicit temporal constraints. $\impTC =
 \{\concurrent, \strongConsec, \weakConsec\}$.
@@ -239,55 +251,22 @@ Now, we can define {\bf {\em implicit temporal semantics}} to demand that
 resultant matching sub-graph be \textbf{concurrent}, \textbf{weakly
   consecutive}, or \textbf{strongly consecutive}.
 
-\SmallSpace
-\noindent {\bf Conjectures:}
- \begin{enumerate}
-	\item If the graph $G$ is of star shape, e.g., there exist a center node
-          $u$ such that for any other nodes $v$ there exists an edge between $u$
-          and $v$, and if the in-degree of $u>0$, then, $G$ is concurrent iff $G$ is consecutive.
-	\item If the graph $G$ is a clique, then, $G$ is concurrent iff $G$ is
-          consecutive.
-	\item If there exists a circle that traverse through all nodes in $G$,
-          then, there exist an edge on this circle whose active period dominates
-          those of all other edges on the circle.
-	
-\end{enumerate}
-
-\noindent {\bf Remarks:}
-\begin{itemize}
-	\item Whether these conjectures are true or not may depend on whether
-          the graph is directed or undirected.\\
-          
-          If a graph is connected, it is a star shape, but with all edges going
-          out, e.g., if there are no pairs of edges that have tail-to-head
-          connection, then is it consecutive? apparently it satisfy our definition.
-        
-	\item Either we need to find some work that has proved them, or to prove
-          them, which should not be hard.
-	\item These conjectures, if proved true, can be used to speed up query
-          evaluation process. It should be easy to identify star shape, clique
-          and circle in query patterns, which are usually very small. This will
-          allow us to strength the temporal constraints based on the properties
-          described in the conjectures to enhance filtering.
-\end{itemize}
-
 We now define a few functions that apply the implicit temporal semantics. 
 
 \begin{defn}
   Given a temporal graph $G$, the function $\impBool$ is a curried Boolean
   function $\impBool : \impTC \to P(E) \to \textbf{2} $ that takes an implicit
-  temporal constraint $c$ and returns a function that takes a set of edges $S_e
-  \subseteq E_G$ as input and returns true if the edge-induced graph
-  $\pi_{S_e}(G)$ satisfies constraint $c$, and false otherwise. In other words
-  for a given temporal condition $c \in \impTC$, $\impBool(c) : P(E) \to
-  \textbf{2}$. For simplicity we will use $\impBool(c)(S_e)$ and
-  $\impBool(c,S_e)$ for a given set $S_e \subseteq E$ interdependently.
+  temporal constraint $\impVar \in \impTC$ and returns a function that takes a
+  set of edges $S_e \subseteq E_G$ as input and returns true if the edge-induced
+  graph $\pi_{S_e}(G)$ satisfies constraint $c$, and false otherwise. In other
+  words for a given temporal condition $\impVar \in \impTC$, $\impBool(\impVar)
+  : P(E) \to \textbf{2}$. For simplicity we will use $\impBool(\impVar)(S_e)$
+  and $\impBool(c,S_e)$ for a given set $S_e \subseteq E$ interdependently.
 \end{defn}
 
 \noindent {\bf Conjectures:}
 \begin{enumerate}
-  \item Given a temporal graph $G$, a set of edges $S_e \subseteq E_G$ and
-    a temporal constraint $c$, $\tau_B(c)(S_e) \Rightarrow \forall S
-    \subseteq S_e (\tau_B(c, S))$
+  \item Given a temporal graph $G$, a set of edges $S_e \subseteq E_G$ and a
+    temporal constraint $\impVar \in \impTC$, $\impBool(\impVar)(S_e)
+    \Rightarrow \forall S \subseteq S_e (\tau_B(c, S))$
 \end{enumerate}
-

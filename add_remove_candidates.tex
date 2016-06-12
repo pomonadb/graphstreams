@@ -1,0 +1,23 @@
+\subsection{Adding and removing Candidate Pairs}
+
+As we build the mappings, we will maintain two three pieces of information.  The
+mapping-so-far, $M$, the query interval so far $\impApprox(m)(\{ T(e) | (e,f)
+\in M\})$, and the data interval so far $\impApprox(m)(\{ T(f) | (e,f) \in M\})$
+As noted in Section~\ref{sec:next_query_edge}, we want to minimize the size of
+this interval as we build up the mapping, so to minimize computation, we will
+update this value each time we add to $M$. So adding the candidate pair
+$(e',f')$ to $(M, \impFunc_{1,old},\impFunc_{2,old} )$ will simply be the
+computation
+
+\[(M \cup \{(e',f')\}, \impApprox(m)(\{\impFunc_{1,old}, T(e')\}),
+\impApprox(m)(\{\impFunc_{1,old}, T(f')\}) )\]
+
+However, removing edges is hard, so we will have to recompute the intervals,
+resulting in the computation, where $M = M - \{(e',f')\}$.
+
+\[
+  (M',
+    \impApprox(m)(\{ T(e) | (e,f) \in M'\}),
+    \impApprox(m)(\{ T(f) | (e,f) \in M'\})
+\]
+

@@ -31,16 +31,15 @@
 \newtheorem{observation}{Observation}
 \newtheorem{problem}{Problem}
 \newtheorem{proposition}{Proposition}[section]
+\newtheorem{conjecture}{Conjecture}[section]
 
 
 % ----------------------------
-% macros for column types
+% macros for size-defined column types
 % ----------------------------
 \newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 \newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 \newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
-
-
 
 
 % -----------------------------
@@ -66,16 +65,19 @@
 
 
 % indentifiers for explicit semantics
+\newcommand{\expVar}{x}
 \newcommand{\exact}{\textsc{exact}}
 \newcommand{\contain}{\textsc{contain}}
 \newcommand{\contained}{\textsc{contained}}
 \newcommand{\intersection}{\textsc{intersect}}
+\newcommand{\intersect}{\intersection}
 % explicit processing functions
 \newcommand{\expFunc}{\varepsilon}
 \newcommand{\expLocal}{\expFunc_{\textsc{loc}}}
 \newcommand{\expGlobal}{\expFunc_{\textsc{glob}}}
 
 % identifiers for implicit semantics
+\newcommand{\impVar}{m}
 \newcommand{\concur}{\textsc{concur}}
 \newcommand{\concurrent}{\concur}
 \newcommand{\weakConsec}{\textsc{Wconsec}}
