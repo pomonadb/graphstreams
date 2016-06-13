@@ -31,9 +31,16 @@
 \newtheorem{observation}{Observation}
 \newtheorem{problem}{Problem}
 \newtheorem{proposition}{Proposition}[section]
+\newtheorem{conjecture}{Conjecture}[section]
 
 
- 
+% ----------------------------
+% macros for size-defined column types
+% ----------------------------
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
 
 % -----------------------------
 % macros for definitions
@@ -49,12 +56,49 @@
 \newcommand{\impTC}{\mathcal{C}_{imp}}
 \newcommand{\expTC}{\mathcal{C}_{exp}}
 
+%assignment for algs
+\newcommand{\assign}{ \texttt{:= }}
+
+% the candidate set function.
+% in some places it is $C$, in others $\Phi$
+\newcommand{\candSet}{\Phi}
 
 
+% Set identifiers
 \newcommand{\T}{\text{T}}
 \newcommand{\I}{\mathcal{I}}
 \newcommand{\E}{\mathcal{E}}
 \newcommand{\C}{\mathcal{C}}
+
+
+% indentifiers for explicit semantics
+\newcommand{\expVar}{x}
+\newcommand{\exact}{\textsc{exact}}
+\newcommand{\contain}{\textsc{contain}}
+\newcommand{\contained}{\textsc{contained}}
+\newcommand{\intersection}{\textsc{intersect}}
+\newcommand{\intersect}{\intersection}
+
+% explicit processing functions
+\newcommand{\expFunc}{\varepsilon}
+\newcommand{\expLocal}{\expFunc_{\textsc{loc}}}
+\newcommand{\expGlobal}{\expFunc_{\textsc{glob}}}
+
+% identifiers for implicit semantics
+\newcommand{\impVar}{m}
+\newcommand{\concur}{\textsc{concur}}
+\newcommand{\concurrent}{\concur}
+\newcommand{\weakConsec}{\textsc{Wconsec}}
+\newcommand{\strongConsec}{\textsc{Sconsec}}
+
+% implicit processing functions
+\newcommand{\impFunc}{\tau}
+\newcommand{\impBool}{\impFunc_b }
+\newcommand{\impApprox}{\impFunc_f }
+
+% Co-incidence interval graph macros
+\newcommand{\ciFunc}[1]{I_{#1}}
+\newcommand{\ciGraph}[2]{\I_{#2}^{#1}}
  
 %----------------------------------------------------------
 

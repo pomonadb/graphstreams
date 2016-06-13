@@ -1,0 +1,25 @@
+\subsection{Temporal modification of \textsc{NextQueryEdge}}
+\label{sec:next_query_edge}
+
+Here, we want to minimize the search space as early a possible and maintain the
+smallest number of search options as long as possible. To pick a start vertex,
+we will simply pick the edge $e \in E_Q$ that has the smallest $|\candSet(e)|$
+As in many existing algorithms, \cite{2004-PAMI-VF2, 2009-EDBT-GADDI,
+  2008-SIGMOD-GraphQL} we will limit our search to edges that are coincident to
+already mapped edges, but have not been paired. Of course we will also limit to
+those edges whose addition does not violate $\impBool(\impVar)$ Then we need to
+specify an optimal order among these.  We will select the edge whose addition
+minimizes the result of $\impApprox(\impVar)$, run on those edges matched so far, and
+the new edges to be added.
+
+\textbf{Remarks}
+We can also consider other filtering methods.  Most of them can just be composed
+with our existing ordering, probably after so that ties will be broken by the
+following conditions.
+\begin{itemize}
+  \item Greedily minimize size of intermediate results \cite{2008-SIGMOD-GraphQL} 
+  \item Take a statistical profile of all edges in the query graph. Use the
+    frequency as a weight. Obtain a minimum spanning tree (of the coincidence
+    graph) and search in order of insertion into min spanning
+    tree. \cite{2008-VLDB-QuickSI}
+\end{itemize}

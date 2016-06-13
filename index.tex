@@ -1,0 +1,43 @@
+\section{Temporal Index}
+
+There are many efficient indexing techniques. But the temporal dimension allows
+us an additional method by which we can filter our data. In fact it is a very
+strong filter that can prune a search space from tens of millions of edges to on
+average about 10000 per arbitrary time slice. So how do we go about constructing
+a temporal index?  We start with the observation that each edge is a tuple in
+$V^2 \times \T^2$. Similar to how adjacency matrices model the
+edge-relationships in the 2 dimensional space $V^2$, we can create the
+2-dimensional space $T^2$, where each time window represents a region in this
+space. Then the obvious solution is to create a spatial index. For any given
+edge $e = (u,v, \ts,\ tf)$, we will create a 2-dimensional box $b(e)$ bounded by
+the system
+\[b((u,v, \ts, \tf)) =
+  \begin{cases}
+    x \leq \tf \\
+    x \geq \ts \\
+    y \leq \tf \\
+    y \geq \ts
+  \end{cases}
+\]
+
+Notice that $T(e) \cap T(f) = \emptyset$ for $e,f$ edges, if and only if $b(e)$
+and $b(f)$ do not overlap. We can then use an RTree \cite{1984-SIGMOD-RTree} to
+index this space. In this form, this tool is only useful for when we consider
+$\impVar = \concurrent, \strongConsec$.  More robustly we can create a specific
+index for when $\impVar = \weakConsec$, in which case we will generate the
+2-dimensional space
+\[ \begin{cases}
+     x \leq \tf \\
+     y \leq \tf
+   \end{cases}
+\]
+
+Thus, like everything else in this paper, our indexing methodology is dependent
+on the contemporaneity condition $\impVar \in \impTC$. 
+
+Also, note that this index can be used for much more than just representing the
+edges in the graphs, it can also be used for indexing subgraphs based on the output
+of $\impApprox{\impVar}$.  Then, for any edge that we are curious about adding, we can use
+the index to figure out which edges statisfy the temporal condition.
+
+  

@@ -1,6 +1,7 @@
 \documentclass{article}
 \usepackage[ruled, linesnumbered]{algorithm2e}
 \usepackage{amsmath, amsthm, amssymb, tikz, float}
+\usepackage{booktabs, array}
 \usepackage{todonotes}
 \usepackage{cite}
 
@@ -19,10 +20,15 @@
 \begin{document}
 
 \maketitle
+
+\listoftodos
+
 \input{definitions}
 \input{edge_iso}
 \input{structure}
 \input{encoding}
+\input{index}
+\input{experiments}
 
 \bibliography{TempPtMatching}{}
 \bibliographystyle{plain}

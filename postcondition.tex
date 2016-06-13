@@ -1,0 +1,51 @@
+\subsection{Temporal Postcondition}
+\label{sec:postcondition}
+
+Similar to the way in which \cite{2016-arXiv-TemporalIso} developed several
+naive versions of the VF2~\cite{2004-PAMI-VF2} algorithm to include the basics
+of the \textsc{Wconsec} temporal semantics. We will consider a similar algorithm
+to the \textit{To-Ti}, algorithm where the topographical information is
+considered before the temporal information. Here, we simply filter the results
+of any implementation of \textsc{GenericQueryProc} with $\tau_b \circ T \circ
+E$. We get this naive algorithm in Algorithm~\ref{alg:naive_temp}.
+
+\newcommand{\badIso}{\texttt{badIso}}
+
+\begin{algorithm}
+  \label{alg:naive_temp}
+  \caption{\textsc{TopTimeQuery}$(<Q,T_q, \expVar, \impVar>, G)$}
+  \KwIn{A temporal query with query graph $Q$, a time range $T_q$, explicit
+    semantics $\expVar$, and implicit semantics, with respect to the data graph
+    $G$ }
+  \KwOut{The set of patterns obeying the temporal semantics $\impVar$ matching
+    $Q$ in $G$ }
+
+  $R$ \assign \textsc{GenericQueryProc}$(Q,G)$\;
+  
+  \ForEach{$g \in R$}{
+
+    // enforce the explicit semantics \\
+    \badIso \assign \emph{False} \;
+    \ForEach{$e' \in V(g)$ and while not \badIso}{
+      \If{not $\expLocal(\expVar)(T_q,E(Q),E(g))$}{
+        $R$\texttt{.remove} g\;
+        \badIso \assign \emph{True} \;
+        \textbf{break}\;
+      }
+      \lIf{\texttt{bad}}{ \badIso \assign \emph{False} \;\textbf{next}\; }
+    } 
+
+    // Enforce the implicit semantics. \\
+    \If{$\impBool(\impVar)(E(Q), E(g))$}{
+      $R$\texttt{.remove} g\;
+      \textbf{next}\;
+    }
+  }
+  \Return $R$\;
+\end{algorithm}
+
+This algorithm simply filters out those result graphs that violate the temporal
+semantics and/or the time window $T_q$.  When both $c$ and $T_q$ are given,
+the potential result graph must take $T_q$ into consideration when checking if
+the potential result graph obeys $c$.
+

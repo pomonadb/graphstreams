@@ -1,0 +1,28 @@
+\subsection{Simple Modification of \textsc{FilterCandidates}}
+\label{sec:naive_filter_candidates}
+
+The method presented in section \ref{sec:postcondition} is very simplistic and
+will result in a lot of unnecessary computation of branches of the search tree
+that might've been pruned earlier. In this section we begin to propose some
+simple modifications to existing algorithms that will combine to create a first
+algorithm for temporal pattern matching. The extension discussed in
+Section~\ref{sec:naive_joinable} is the one described in the temporal extension
+of VF2 \cite{2016-arXiv-TemporalIso}.
+
+The purpose of the function \textsc{FilterCandidates} is to provide a
+label-based index-boosted search of potential candidates for the input edge
+$e$. Some algorithms \cite{1976-ACMJ-Ullman, 2009-EDBT-GADDI, 2008-VLDB-QuickSI}
+will only perform a label search. while others will perform some signature based
+pruning \cite{2010-VLDB-SPath,2008-SIGMOD-GraphQL}, and still others perform
+transformations on the query and data graphs \cite{2013-SIGMOD-TurboISO,
+  2015-VLDB-BoostIso}. We can extend the basic label search to include some
+basic temporal information. If for an edge $e$ in the query graph and a
+potential candidate $f$ in the data graph, if there is some temporal information
+$T(e)$, then we will enforce $\impBool(\impVar)(\{e, f\})$. In the GraphQL
+algorithm, a function that discounts candidates based on signatures is composed
+with the standard label-index. We discuss our version of this algorithm in
+Section~\ref{sec:encoding}. The advantage of doing this here, is that we don't
+need to consider the specific temporal information of the edges in the query
+graph in the inner loops of \textsc{SubgraphSearch} since we already know that
+they are matched appropriately.
+
