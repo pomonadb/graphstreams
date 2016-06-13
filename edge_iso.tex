@@ -11,15 +11,16 @@ We introduce the concept of the {\bf {\em co-incidence interval graph}, a
 
 \begin{defn}
   \label{def:ci_graph}
-  The co-incidence interval graph, $\I_G^c$ of a graph $G = (V_G,E_G, L_G)$ under
-  implicit temporal constraint $c \in \impTC$, is a graph $\I_G^c = (E, \E)$, where its 
-  node set is $E$,  the edge set of  graph $G$,  and it is edge set $\E \subseteq E^2$ is
-  the set of ``meta-edges'' between elements in $E$. For any pair $e_1, e_e \in E$, 
-  $(e_1,e_2) \in \E$ if  
+  The co-incidence interval graph, $\ciGraph{\impVar}(G)$ of a graph $G =
+  (V_G,E_G, L_G)$ under implicit temporal constraint $\impVar \in \impTC$, is a
+  graph $\ciGraph{\impVar}(G) = (E, \E)$, where its node set is $E$, the edge
+  set of graph $G$, and it is edge set $\E \subseteq E^2$ is the set of
+  ``meta-edges'' between elements in $E$. For any pair $e_1, e_e \in E$,
+  $(e_1,e_2) \in \E$ if
   \begin{itemize}
-    \item $e_1$ and $e_2$ share an endpoint, e.g., $\{\pi_1(e_1), \pi_2(e_1) 
-    	\cap \pi_1(e_2), \pi_2(e_2) \not= \emptyset$,  and
-    \item $\impBool(c,\{e_1,e_2\}) = True$
+    \item $e_1$ and $e_2$ share an endpoint, e.g., $\{\pi_1(e_1), \pi_2(e_1)
+      \cap \pi_1(e_2), \pi_2(e_2) \neq \emptyset$, and
+    \item $\impBool(\impVar,\{e_1,e_2\}) = True$
   \end{itemize}
 \end{defn}
 
@@ -29,14 +30,16 @@ implicit temporal semantics defined earlier.
 \todo[inline]{example}
 
 
- Let $I_c$ be the function that computes this co-incidence interval graph, given an implicit temporal constraint $c$, e.g., $I_c(G) = \I_G^c$.
+ Let $\ciFunc{\impVar}(G)$ be the function that computes this co-incidence interval
+ graph, given an implicit temporal constraint $\impVar \in \impTC$, i.e.,
+ $\ciFunc{\impVar}{G} = \ciGraph{\impVar}(G)$.
 
 \begin{lemma}
   \label{lem:ci_biject}
-  Given an implicit temporal constraint $c$, the function $I_c$ is a bijection
-  over unlabelled\footnote{This is a trivial extension that only serves to
-    complicate the proof. The lemma indeed holds for labelled graphs as well.}
-  graphs $G$ with $\delta(G) \geq 1$.
+  Given an implicit temporal constraint $\impVar \in \impTC$, the function
+  $\ciFunc{\impVar}$ is a bijection over unlabelled\footnote{This is a trivial
+    extension that only serves to complicate the proof. The lemma indeed holds
+    for labelled graphs as well.}  graphs $G$ with $\delta(G) \geq 1$.
 \end{lemma}
 
 \begin{proof}[Proof] Surjectivity follows the definition of function $I_c$, so,
@@ -44,44 +47,48 @@ implicit temporal semantics defined earlier.
   
   \textit{Injectivity}. All of the information necessary to restore the temporal
   graph $G$ is stored in the edge-set $E$, since there is no vertex that is not
-  an endpoint of an edge. Thus, if $I_c(G) = I_c(H)$, then $V(I_c(G)) = E(G) =
-  E(H) = V(I_c(H))$, hence $G = H$.
+  an endpoint of an edge. Thus, if $\ciFunc{\impVar}(G) = \ciFunc{\impVar}(H)$,
+  then $V(\impFunc{\impVar}(G)) = E(G) = E(H) = V(\impFunc{\impVar}(H))$, hence
+  $G = H$.
 \end{proof}
 
 \noindent \textbf{Remarks:}
 \begin{itemize}
-  \item Note that we didn't use the edge set of $\I^c_G$ at all in the proof
-    above. This is because all of the structural information needed to describe
-    the graph $G$ is stored in the edge set (labels are handled by an external
-    map $L$).
+  \item Note that we didn't use the edge set of $\ciGraph{\impVar}{G}$ at all in the
+    proof above. This is because all of the structural information needed to
+    describe the graph $G$ is stored in the edge set (labels are handled by an
+    external map $L$).
   \item Note that Lemma~\ref{lem:ci_biject} only holds for graphs with
     $\delta(G) \geq 1$. This is because if there is a vertex that has degree
     zero, there is no edge that knows about it. This could be solved if you
-    wanted to keep track of these vertices in $\I^c_G$. (Its also very unlikely
-    for interesting large graphs for singletons to be of any use or
-    importance. They will only be returned in trivial queries such as the empty
-    graph or singletons).
+    wanted to keep track of these vertices in $\ciGraph{\impVar}{G}$. (It's also
+    very unlikely for interesting large graphs for singletons to be of any use
+    or importance. They will only be returned in trivial queries such as the
+    empty graph or singletons).
 \end{itemize}
 
 \begin{corollary}
   Given temporal graphs $G = (V_G, E_G)$ and $H = (V_H, E_H)$ such that
-  $\delta(G) \geq 1$ and $\delta(H) \geq 1)$, an implicit constraint $c$, and
-  an isomorphism $f_c : V \to V$, then $I_c^{-1} \circ f_c \circ I_c : E \to E$
-  is a graph isomorphism if $f_c$ uniquely maps labels.
+  $\delta(G) \geq 1$ and $\delta(H) \geq 1)$, an implicit semantics $\impVar in
+  \impTC$, and an isomorphism $f_\impVar : V \to V$, then $\ciFunc{\impVar}^{-1}
+  \circ f_{\impVar} \circ \ciFunc{\impVar} : E \to E$ is a graph isomorphism if
+  $f_{\impVar}$ uniquely maps labels.
 \end{corollary}
 
 \begin{proof}
-  Since $I_c$ losslessly encodes edges as vertices, $f_c$ is really bijection
-  between edge sets, that preserves the temporal coincidence relationship
-  between edges.  For arbitrary $e,e' \in E_G$ and $f,f'\in E_H$ such that
-  $f_c(e) = f$ and $f_c(e') = f'$ show that if and only if $e$ and $e'$ are
-  coincident in $G$, $f$ and $f'$ are coincident in $H$.
+  Since $\ciFunc{\impVar}$ losslessly encodes edges as vertices, $f_{\impVar}$
+  is really bijection between edge sets, that preserves the temporal coincidence
+  relationship between edges.  For arbitrary $e,e' \in E_G$ and $f,f'\in E_H$
+  such that $f_{\impVar}(e) = f$ and $f_{\impVar}(e') = f'$ show that if and
+  only if $e$ and $e'$ are coincident in $G$, $f$ and $f'$ are coincident in
+  $H$.
 
-  For vertex $e \in V(\I_G^c)$, we consider it to be a vertex with labels
-  corresponding to its declaration in $G$. Hence the label of $e$ is in $(V^2
-  \times T^2)$. So we let $L_{\I_G^c} = \left(u, v \right)$. Then, since $f_c$
-  uniquely maps labels, $f_c(\I_G^C)$ will have preserved all adjacencies that
-  violate the condition $c$ (as well as those that do not).
+  For vertex $e \in V(\ciGraph{\impVar}{G})$, we consider it to be a vertex with
+  labels corresponding to its declaration in $G$. Hence the label of $e$ is in
+  $(V^2 \times T^2)$. So we let $L_{\ciGraph{\impVar}{G}} = \left(u, v
+  \right)$. Then, since $f_c$ uniquely maps labels,
+  $f_{\impVar}(\ciGraph{\impVar}{G})$ will have preserved all adjacencies that
+  violate the condition $\impVar$ (as well as those that do not).
 \end{proof}
 
 Algorithm~\ref{alg:ci_graph} outlines the construction of a coincidence interval
@@ -89,7 +96,8 @@ graph. Its complexity is $O(|E|d_{\max}(G))$ in the edge-relational
 representation of the graph).
 
 Algorithm~\ref{alg:ci_graph_inv} depicts the procedure for restoring the
-original temporal graph given a co-incidence interval graph.
+original temporal graph given a co-incidence interval graph, assuming a unique
+label mapping.
 
 \begin{algorithm}
   \label{alg:ci_graph}

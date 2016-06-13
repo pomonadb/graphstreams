@@ -38,21 +38,21 @@ different.
 
   Initialize the Mapping $M$ to $\emptyset$\;
   \ForEach{$e \in E(Q)$}{
-    $\Phi(e)$ \texttt{:=} \textsc{FilterCandidates}$(G,Q,e, \cdots )$\;
-    \If{$\Phi(e) = \emptyset$}{ \Return{} \; }
+    $\candSet(e)$ \texttt{:=} \textsc{FilterCandidates}$(G,Q,e, \cdots )$\;
+    \If{$\candSet(e) = \emptyset$}{ \Return{} \; }
   }
 
-  \textsc{SubgraphSearch}$(Q,G,M,\Phi, \cdots)$\;
+  \textsc{SubgraphSearch}$(Q,G,M,\candSet, \cdots)$\;
 
   \setcounter{AlgoLine}{0}
   \SetKwProg{subroutine}{Subroutine}{}{}
-  \subroutine{\textsc{SubgraphSearch}$(Q,G,M,\Phi, \cdots)$}{
+  \subroutine{\textsc{SubgraphSearch}$(Q,G,M,\candSet, \cdots)$}{
     \eIf{$|M| = |E(Q)|$}{
       \textbf{Report} $M$\;
     }{
       $e$ \texttt{:=} \textsc{NextQueryEdge} $(\cdots)$\;
-      $\Phi'(e)$ \texttt{:=} \textsc{RefineCandidates} $(M,u, \Phi(e), \cdots)$\;
-      \ForEach{$f \in \Phi'(e)$ that is not yet matched}{
+      $\candSet'(e)$ \texttt{:=} \textsc{RefineCandidates} $(M,u, \candSet(e), \cdots)$\;
+      \ForEach{$f \in \candSet'(e)$ that is not yet matched}{
         \If{\textsc{IsJoinable}$(Q,G,e,f, \cdots )$}{
           \textsc{UpdateState}$(M,e,f, \cdots )$\;
           \textsc{SubgraphSearch}$(Q,G,M, \cdots)$\;

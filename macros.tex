@@ -56,8 +56,15 @@
 \newcommand{\impTC}{\mathcal{C}_{imp}}
 \newcommand{\expTC}{\mathcal{C}_{exp}}
 
+%assignment for algs
+\newcommand{\assign}{ \texttt{:= }}
+
+% the candidate set function.
+% in some places it is $C$, in others $\Phi$
+\newcommand{\candSet}{\Phi}
 
 
+% Set identifiers
 \newcommand{\T}{\text{T}}
 \newcommand{\I}{\mathcal{I}}
 \newcommand{\E}{\mathcal{E}}
@@ -71,6 +78,7 @@
 \newcommand{\contained}{\textsc{contained}}
 \newcommand{\intersection}{\textsc{intersect}}
 \newcommand{\intersect}{\intersection}
+
 % explicit processing functions
 \newcommand{\expFunc}{\varepsilon}
 \newcommand{\expLocal}{\expFunc_{\textsc{loc}}}
@@ -82,10 +90,15 @@
 \newcommand{\concurrent}{\concur}
 \newcommand{\weakConsec}{\textsc{Wconsec}}
 \newcommand{\strongConsec}{\textsc{Sconsec}}
+
 % implicit processing functions
 \newcommand{\impFunc}{\tau}
 \newcommand{\impBool}{\impFunc_b }
 \newcommand{\impApprox}{\impFunc_f }
+
+% Co-incidence interval graph macros
+\newcommand{\ciFunc}[1]{I_{#1}}
+\newcommand{\ciGraph}[2]{\I_{#2}^{#1}}
  
 %----------------------------------------------------------
 

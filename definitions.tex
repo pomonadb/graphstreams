@@ -198,13 +198,16 @@ pattern matching $h$ explicitly satisfies the temporal constraint of $q$ if
   be the set of differentiating identifiers for the explicit semantics, and
   $\expVar$ to be one of them.
 
-  Finally, we will define a curried function $\expLocal : \expTC \to P(E^2) \to
-  \textbf{2}$ which will take an explicit temporal condition return a function
-  that takes a set of pairs of time intervals and determine whether each pair of
-  time intervals satisfies the given explicit temporal semantics. Thus, for
-  $\expVar \in \expTC$, $\expLocal(\expVar) : \E^2 \to \textbf{2}$ is a function
-  that takes a set of pairs of edges and determines whether such a mapping is
-  obeys the explicit semantics defined by $\expVar$.
+  Finally, we will define a curried function $\expLocal : \expTC \to T^2 \times
+  P(E)^2 \to \textbf{2}$ which will take an explicit temporal condition return a
+  function that takes a global time interval ($T_q$) and a pair of ordered sets
+  of time intervals in order to determine whether each pair of time intervals
+  satisfies the given explicit temporal semantics with respect to the mapped
+  edges, and the global temporal constraint. Example usage for a mapping $M \in
+  P(E^2)$ would be $\expLocal(\intersection)(T_q,M)$. Thus, for $\expVar \in
+  \expTC$, $\expLocal(\expVar) : P(E)^2 \to \textbf{2}$ is a function that takes
+  a pair of ordered sets of edges and determines whether such a mapping obeys
+  the explicit semantics defined by $\expVar$.
 
 \end{defn}
 
@@ -237,9 +240,9 @@ We next define a few {\bf {\em implicit temporal semantics}} as remedy.
   E_G$, $T(e_1) \cap T(e_2) \neq \emptyset$.
 \end{defn}
 
-\begin{lemma}
+\begin{corollary}
 If a temporal graph $G$ is strongly consecutive, it must be weakly consecutive.
-\end{lemma}
+\end{corollary}
 \begin{proof}
   This is fairly obvious by Definition~\ref{def:consec}.
 \end{proof}
@@ -256,17 +259,19 @@ We now define a few functions that apply the implicit temporal semantics.
 \begin{defn}
   Given a temporal graph $G$, the function $\impBool$ is a curried Boolean
   function $\impBool : \impTC \to P(E) \to \textbf{2} $ that takes an implicit
-  temporal constraint $\impVar \in \impTC$ and returns a function that takes a
+  temporal semantics $\impVar \in \impTC$ and returns a function that takes a
   set of edges $S_e \subseteq E_G$ as input and returns true if the edge-induced
   graph $\pi_{S_e}(G)$ satisfies constraint $c$, and false otherwise. In other
-  words for a given temporal condition $\impVar \in \impTC$, $\impBool(\impVar)
+  words for a given temporal semantics $\impVar \in \impTC$, $\impBool(\impVar)
   : P(E) \to \textbf{2}$. For simplicity we will use $\impBool(\impVar)(S_e)$
-  and $\impBool(c,S_e)$ for a given set $S_e \subseteq E$ interdependently.
+  and $\impBool(c,S_e)$ for a given set $S_e \subseteq E$ interdependently. We
+  will overload the $\impBool$ operator, so that it can also take a set of
+  time-windows, in place, or in addition to the set of edges.
 \end{defn}
 
 \noindent {\bf Conjectures:}
 \begin{enumerate}
   \item Given a temporal graph $G$, a set of edges $S_e \subseteq E_G$ and a
-    temporal constraint $\impVar \in \impTC$, $\impBool(\impVar)(S_e)
-    \Rightarrow \forall S \subseteq S_e (\tau_B(c, S))$
+    temporal semantics $\impVar \in \impTC$, $\impBool(\impVar)(S_e)
+    \Rightarrow \forall S \subseteq S_e (\tau_B(\impVar, S))$
 \end{enumerate}

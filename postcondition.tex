@@ -9,41 +9,36 @@ considered before the temporal information. Here, we simply filter the results
 of any implementation of \textsc{GenericQueryProc} with $\tau_b \circ T \circ
 E$. We get this naive algorithm in Algorithm~\ref{alg:naive_temp}.
 
+\newcommand{\badIso}{\texttt{badIso}}
+
 \begin{algorithm}
   \label{alg:naive_temp}
-  \caption{\textsc{TopTimeQuery}$(<Q,T_q>, G, c)$}
-  \KwIn{A temporal query graph $Q$, a time range $T_q$, a
-    data graph $G$, and a temporal condition $c$}
-  \KwOut{The set of patterns obeying the temporal semantic $c$ matching $Q$ in $G$ }
+  \caption{\textsc{TopTimeQuery}$(<Q,T_q, \expVar, \impVar>, G)$}
+  \KwIn{A temporal query with query graph $Q$, a time range $T_q$, explicit
+    semantics $\expVar$, and implicit semantics, with respect to the data graph
+    $G$ }
+  \KwOut{The set of patterns obeying the temporal semantics $\impVar$ matching
+    $Q$ in $G$ }
 
-  $R$ \texttt{:=} \textsc{GenericQueryProc}$(Q,G)$\;
+  $R$ \assign \textsc{GenericQueryProc}$(Q,G)$\;
   
   \ForEach{$g \in R$}{
 
-    \eIf{$c \neq \emptyset$ and $T_q \neq \emptyset$}{
-      \If{ not $\tau_b(c)(\{T(e) | e \in E(G)\} \cup \{T_q\})$}{
+    // enforce the explicit semantics \\
+    \badIso \assign \emph{False} \;
+    \ForEach{$e' \in V(g)$ and while not \badIso}{
+      \If{not $\expLocal(\expVar)(T_q,E(Q),E(g))$}{
         $R$\texttt{.remove} g\;
-        \textbf{next}\;
-      }
-    }{
-
-      \If{$c \neq \emptyset$ and not $\tau_b(c)(\{T(e) | e \in E(G)\}$}{
-        $R$\texttt{.remove} g\;
-        \textbf{next}\;
-      }
-      
-      \If{$T_q \neq \emptyset$ and
-        not $\forall e \in E(g).\tau_B(c)\{T(e),T_q\}$}{
-
-        $R$\texttt{.remove} g\;
-        \textbf{next}\;
-      }
-    } \ForEach{$e' \in V(g)$}{
-      Let $e \in V(Q)$ be the vertex mapped to $e'$\;
-      \If{$T(e) \cap T(e') = \emptyset$}{
-        $R$\texttt{.remove} g\;
+        \badIso \assign \emph{True} \;
         \textbf{break}\;
       }
+      \lIf{\texttt{bad}}{ \badIso \assign \emph{False} \;\textbf{next}\; }
+    } 
+
+    // Enforce the implicit semantics. \\
+    \If{$\impBool(\impVar)(E(Q), E(g))$}{
+      $R$\texttt{.remove} g\;
+      \textbf{next}\;
     }
   }
   \Return $R$\;

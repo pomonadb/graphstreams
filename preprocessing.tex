@@ -8,21 +8,21 @@ the explicit semantics, in which case, we can reject the query instantly with a
 null result.
 
 Another interesting situation is when, for a given query $<Q, T_q,
-\intersection, \concurrent>$\todo{change earlier definition to reflect this
-  definition}, and some edge $e \in E(G)$ with $T(e) \neq T(e) \cap T_q \neq
-\emptyset$. Then, if we enforce the \intersection{} semantics, we do not need to
-consider, for the edge $e$, the part of the interval $T(e) - T_q$, so we can
-update $T(e)$ to be $T(e) \cap T_q$.
+\intersection, \concurrent>$ and some edge $e \in E(G)$ with $T(e) \neq T_q \cap
+T(e)$ and $T(e) \cap T_q \neq \emptyset$. Then, if we enforce the
+\intersection{} semantics, we do not need to consider, for the edge $e$, the
+part of the interval $T(e) - T_q$, so we can update $T(e)$ to be $T(e) \cap
+T_q$.
 
 Further, we need to consider the way that the \concurrent{} semantics will
 propogate to the neighbors of $e$. For this case, we need to enforce the
 \intersection{} semantics for every edge in $Q$, meaning that we can rewrite
 each $T(e)$ to be $T_q \cap \bigcap_{e' \in E} T(e')$. Of course for the
-$\exact$ semantics this loses pruning power, since we can just test perform an
-index search on the edges of the data-graph to find all time-restricted
-candidates. We can perform a similar tightening for almost every combination
-in $\impTC \times \expTC$. Here are the ones for which a tightening makes sense,
-note that after transformation, the explicit and implicit semantics remain the same.
+$\exact$ semantics this loses pruning power, since we can just perform an index
+search on the edges of the data-graph to find all time-restricted candidates. We
+can perform a similar tightening for almost every combination in $\impTC \times
+\expTC$. Here are the ones for which a tightening makes sense, note that after
+transformation, the explicit and implicit semantics remain the same.
 
 \begin{center}
   \begin{tabular}{cc c c} \toprule
@@ -95,7 +95,8 @@ selectivity of the $\concurrent$ semantics.
     \ForEach{$e' = (v,u) \in E(Q)$}{
       add $\{e,e'\}$ to $T$\;
     }
-    \If{$m \neq \weakConsec$}{
+    // Since $\weakConsec$ does not rewrite well \;i
+    \If{$\impVar \neq \weakConsec$}{
       \ForEach{$w \in V(Q)$}{
         \ForEach{ pair of edges $e' = (v, w), e'' = (w,u)$}{
           add $(e,e', e'')$ to $T$\;
@@ -112,11 +113,11 @@ semantics. This hypernode will then have an active window itself.
 We will then define a hypernode profile, which is an extended version of the
 temporal profile (see section \ref{sec:encoding}). For a given node $n$, it is a
 tuple of the lexographically ordered labels ($p_s$),
-$\impApprox(\concurrent)(S_e)$, and $\impApprox(m)(S_e)$. When we traverse the
+$\impApprox(\concurrent)(S_e)$, and $\impApprox(\impVar)(S_e)$. When we traverse the
 tree to try and map these vertices, we will need to prune results such that the
 internal edges obey the $\intersection$ explicit semantics with
 $\impApprox(\concurrent)(S_e)$, and the incoming and outgoing edges obey the $m$
-implicit semantics with respect to $\impApprox(m)(S_e)$. Algorithm
+implicit semantics with respect to $\impApprox(\impVar)(S_e)$. Algorithm
 \ref{alg:hypernode_matching} describes the hypernode matching process.
 
 \begin{algorithm}
@@ -125,15 +126,15 @@ implicit semantics with respect to $\impApprox(m)(S_e)$. Algorithm
 
   \KwIn{A query hypernode $n$ and its profile $(p_s, p_{in}, p_{out})$, a
     data hypernode $n'$ and its profile $(p'_s, p'_{in}, p'_{out})$, the
-    set of candidate sets $\Phi$}
+    set of candidate sets $\candSet$}
 
-  \KwOut{The updated candidates sets $\Phi$}
+  \KwOut{The updated candidates sets $\candSet$}
   \SetAlgoLined
   
 
   \If{$p_s \neq p'_s$ or $p_{in} \cap p'_{in} = \emptyset)$ or $|E(n)| > |E(n')|$}{
     \ForEach{$e \in E(n)$}{
-      remove $E(n')$ from $\Phi(e)$\;
+      remove $E(n')$ from $\candSet(e)$\;
     }
   }
 \end{algorithm}
@@ -142,5 +143,5 @@ Once we have constructed such hypernodes, we can re-tighten the constraints on
 the graph as per the rules defined above.
 
 Further, when traversing the graph, we will enforce, for $f$ an incoming or
-outgoing edge to a matched hypernode in the data graph, $\impApprox(m)\{T(e),
+outgoing edge to a matched hypernode in the data graph, $\impApprox(\impVar)\{T(e),
 p_{out}\}$.

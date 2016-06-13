@@ -3,13 +3,13 @@
 
 Here, we want to minimize the search space as early a possible and maintain the
 smallest number of search options as long as possible. To pick a start vertex,
-we will simply pick the edge $e \in E_Q$ that has the smallest $|\phi(e)|$ As in
-many existing algorithms, \cite{2004-PAMI-VF2, 2009-EDBT-GADDI,
+we will simply pick the edge $e \in E_Q$ that has the smallest $|\candSet(e)|$
+As in many existing algorithms, \cite{2004-PAMI-VF2, 2009-EDBT-GADDI,
   2008-SIGMOD-GraphQL} we will limit our search to edges that are coincident to
 already mapped edges, but have not been paired. Of course we will also limit to
-those edges whose addition does not violate $\impBool(m)$ Then we need to
+those edges whose addition does not violate $\impBool(\impVar)$ Then we need to
 specify an optimal order among these.  We will select the edge whose addition
-minimizes the result of $\impApprox(m)$, run on those edges matched so far, and
+minimizes the result of $\impApprox(\impVar)$, run on those edges matched so far, and
 the new edges to be added.
 
 \textbf{Remarks}

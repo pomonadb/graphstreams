@@ -19,20 +19,22 @@ lets present the notion of Neighborhood Subgraphs~\cite{2008-SIGMOD-GraphQL}.
 
 This is a fairly basic notion that is easily extensible to consider temporal
 information. The first requirement that will help us to prune the search space,
-is to force these subgraphs to be contemporary under some condition $c \in \C$
-So it is possible that a given static $r$-neighborhood subgraph is contemporary
-under the given $c$, but that there are certain subgraphs of the static
-$r$-neighborhood subgraph that are.  So the temporal extension must return a set
-of subgraphs, not just a single subgraph. Since we are mapping edges instead of
-vertices, we will define the temporal neighborhood subgraphs to be parameterized
-on edges instead of on vertices.
+is to force these subgraphs to be contemporary under some implicit semantics
+$\impVar \in \impTC$. So it is possible that a given static $r$-neighborhood
+subgraph is \emph{not} contemporary under the given semantics $\impVar$, but
+that there are certain subgraphs of the static $r$-neighborhood subgraph that
+are.  So the temporal extension must return a set of subgraphs, not just a
+single subgraph. Since we are mapping edges instead of vertices, we will define
+the temporal neighborhood subgraphs to be parameterized on edges instead of on
+vertices.
 
 \begin{defn}
   (Temporal Neighborhood Subgraphs) Given a temporal graph $G$, an edge $e =
-  (u,v)$, a radius $r$, and a condition $c$, the temporal $r$-neighborhood
-  subgraph set $N_c(G,e,r)$ of a vertex $e$ consists of the vertices and edges
-  that are temporally reachable under $c$ in $r$ steps from $v$ and $u$. Note
-  that $\displaystyle\bigcup N_c(G,e,r) = N(G,v,r) \cup N(G,u,r)$.
+  (u,v)$, a radius $r$, and a semantics $\impVar$, the temporal $r$-neighborhood
+  subgraph set $N_{\impVar}(G,e,r)$ of an edge $e = (v,u)$ consists of the sets
+  of vertices and edges that are temporally reachable under $\impVar$ in $r$
+  steps from $v$ and $u$. Note that $\displaystyle\bigcup N_{\impVar}(G,e,r) = N(G,v,r)
+  \cup N(G,u,r)$.
 \end{defn}
 
 However, representing and using these temporal $r$-neighborhood subgraphs is
@@ -42,7 +44,7 @@ subgraphs, we simply lexographically order the vertices on the edges within the
 set. Then, given a similar ordering of the edges for the query graph $Q$, we
 can prune the search space when the generated $r$-neighborhood subgraph of the
 query graph is not a subsequence of the data graph profile. A significant
-improvement to this original profile models \cite{2012-VDLP-IsoSurvey} includes
+improvement to this original profile models \cite{2012-VLDB-IsoSurvey} includes
 a sequence of preceeding edge labels in each element of the sequence. 
 
 For temporal $r$-neighborhood subgraphs, we have more information that we can
@@ -53,14 +55,18 @@ constructed from the intervals on the edges of graph. We will henceforth refer
 to $p_S$ as the semantic profile, and $p_t$ as the profile interval.
 
 \begin{defn}
-  Define $\tau_f$ to be a curried folding function $\tau_f : \C \to P(T^2) \to T^2$,
-  that summarizes a set of time intervals in a single time interval dependent on
-  the temporal semantics. The cases are defined below:
+  Define $\impApprox$ to be a curried folding function $\impApprox : \impTC \to
+  P(E) \to T^2$, that summarizes a set of edges' intervals in a single time
+  interval dependent on the temporal semantics. We can overload this operator so
+  that it will also summarize the intervals themselves\footnote{This extension
+    makes sense since the function $T$ is really a projection that pulls out the
+    interval from an edge $(u,v, \ts, \tf)$, so when given only the tuple $(\ts,
+    \tf)$ it can simply be the identity.}. The cases are defined below:
 
   \[
-    \tau_f(c)(S) = \begin{cases}
-      \bigcap S, & \text{ if } c = \textsc{concur}, \\
-      \bigcup S, & otherwise      
+    \impApprox(\impVar)(S) = \begin{cases}
+      \bigcap_{e \in S} T(e), & \text{ if } \impVar = \concur, \\
+      \bigcup_{e \in S} T(e), & otherwise
     \end{cases}
   \]
   
@@ -74,14 +80,15 @@ union of all the edges, i.e. the minimum start time and the maximum end
 time. This will allow us to prune grossly errant results.
 
 \begin{defn}
-  The temporal profile $p$ of a graph $G = (V,E)$, given some contemporaneity condition
-  $c \in \C$, is defined to be a tuple $(p_s, p_t)_c$ where
+  The temporal profile $p$ of a graph $G = (V,E)$, given an implicit semantics
+  $\impVar \in \impTC$, is defined to be a tuple $(p_s, p_t)_{\impVar}$ where
   \begin{itemize}
-  \item $p_s$ \emph{\texttt{:=} \, \texttt{toSortedList}} \; $\{L(v) | v \in V \}$,
+  \item $p_s$ \emph{\assign \, \texttt{toSortedList}} \; $\{L(v) | v \in V \}$,
     and
-  \item $p_t$ \emph{\texttt{:=} \, \texttt{foldr1}} \; $\tau_f(c)$ \; $\{T(e) | e \in E\}$, where
-    \texttt{foldr1} accumulates $\tau_f(c)$ accross the  given set, assuming the set
-    is non-empty. If the set is empty then let $p_t$ be $(\infty,\infty)$.
+  \item $p_t$ \emph{\assign \, \texttt{foldr1}} \; $\impApprox(\impVar)$ \; $\{T(e) | e
+    \in E\}$, where \texttt{foldr1} accumulates $\tau_f(c)$ accross the given
+    set, assuming the set is non-empty. If the set is empty then let $p_t$ be
+    $(\infty,\infty)$.
   \end{itemize}
 
   Given two temporal profiles $p = (p_s, p_t)$ and $p' = (p'_s, p'_t)$, $p$ is
@@ -99,18 +106,18 @@ interval to be $(\infty, \infty)$. This local refinement is defined in Algorithm
 
 \begin{algorithm}
   \label{alg:loc_ref}
-  \caption{\textsc{LocalRefinement(Q,G,$\Phi$, $r$, $c$)}}
+  \caption{\textsc{LocalRefinement(Q,G,$\candSet$, $r$, $c$)}}
   \SetAlgoLined
-  \KwIn{A query graph $Q$, data graph $G$, current candidate sets $\Phi$, a
+  \KwIn{A query graph $Q$, data graph $G$, current candidate sets $\candSet$, a
     radius $r$}
-  \KwOut{A refined set of $\Phi$}
+  \KwOut{A refined set of $\candSet$}
 
   \ForEach{$e \in E(Q)$}{
     Calculate the temporal profile $p$ of $N_c(Q,e,r)$\;
-    \ForEach{$f \in \Phi(e)$}{
+    \ForEach{$f \in \candSet(e)$}{
       Calculate the temporal profile $p'$ of $N_c(G,v,r)$\;
       \If{$p \not\subseteq p'$}{
-        remove $f$ from $\Phi(e)$\; 
+        remove $f$ from $\candSet(e)$\; 
       }
     }
   }
