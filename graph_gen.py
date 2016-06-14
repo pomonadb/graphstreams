@@ -107,5 +107,9 @@ def polygon_tuple(u,v,ts,tf):
     return (u,v,
             ts,tf,  tf,tf,  tf,ts,   ts,ts,  ts,tf)
 
-
-
+## The function successive edges takes two edges, e and f, and returns True if
+## they are head-to-tail. i.e \exists v, -e->(v)-f->.
+def successive_edges(e,f):
+    global TARGET
+    global SOURCE
+    return e[TARGET] == f[SOURCE]

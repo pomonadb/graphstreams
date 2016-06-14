@@ -1,3 +1,6 @@
+SOURCE = 1
+TARGET = 2
+ID = 0
 BATCH_SIZE = 1000
 
 ## create an index named on tbl(cols). That is_unique, is_spatial, and is_hash

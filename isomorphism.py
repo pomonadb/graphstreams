@@ -10,8 +10,6 @@ from graph_gen import *
 from sql_helpers import *
 
 
-
-
 def generic_query_proc(query_graph,data_graph):
     iso_so_far = Mapping(directed = True)
     candidate_set = {}
@@ -22,31 +20,34 @@ def generic_query_proc(query_graph,data_graph):
             return False
     query_graph.edges(recalc = True)
     
-    done = subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
-                           0)
+    done = subgraph_search(iso_so_far, query_graph, data_graph, candidate_set)
     print("Done searching!")
     return done
 
     
 def subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
-                    depth):
+                    depth = 0):
 
     if depth != iso_so_far.get_size():
-        print("search depth:", depth, "should be equal to |ISO|", iso_so_far.get_size(),
+        print("!" + ("="*35) +"WARNING" + ("="*35)  + "! ")
+        print("\tsearch depth:", depth, "should be equal to |ISO|", iso_so_far.get_size(),
               depth == iso_so_far.get_size())
+        
     if depth >= query_graph.num_edges():
         print("Found a match!")
         return record(iso_so_far)
     
     else:
         e = query_graph.iterlist[depth]
-        print("  "*depth,"Searching matches for:", e)
+        # print("  "*depth,"Searching matches for:", e)
         candidates = refine_candidates(candidate_set[e], query_graph,
                                        data_graph, iso_so_far)
         
         for f in candidates:
             # print("  "*depth, e, "|--?-->", f, "\t?")
             if is_joinable(query_graph, data_graph, iso_so_far, e, f):
+                # Try to insert the pair and make a recursive call If it fails
+                # (because e was already mapped) skip this iteration
                 if iso_so_far.insert(e,f):
                     subgraph_search(iso_so_far, query_graph, data_graph,
                                     candidate_set, depth + 1)
@@ -67,7 +68,6 @@ def is_joinable(query_graph, data_graph, iso_so_far, eid, fid):
 ## iso_so_far violates the structural conditions specified by query_graph.
 ## data_graph is the data graph,
 def struct_sems(query_graph, data_graph, iso_so_far, edge, fdge):
-    
     params = lambda x: (query_graph, data_graph, iso_so_far, edge, fdge, x)
     
     return _coincident_sems(*(params(True))) and \
@@ -75,9 +75,6 @@ def struct_sems(query_graph, data_graph, iso_so_far, edge, fdge):
     
 
 def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
-    curr = 1 if pred else 2
-    other = 2 if pred else 1
-    ID = 0
 
     # select the appropriate functions
     coincident_in = query_graph.epred_in if pred else query_graph.esucc_in
@@ -86,8 +83,10 @@ def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
     for eeid in coincident_in(edge[curr], iso_so_far.domain()):
         # for every e in query_graph there is an f in data_graph
         ffid = iso_so_far.get(eeid[ID])
-        # ensure there is a vertex v s.t. ( -f_pred->(v)-fdge->)
-        if data_graph.edge_tuple(ffid)[other] != fdge[curr]:
+        ffdge = data_graph.edge_tuple(ffid)
+        if pred and not successive_edges(ffdge,fdge):
+            return False
+        if not pred and not successive_edges(fdge,ffdge):
             return False
 
     return True
