@@ -48,7 +48,6 @@ def get_engine(cursor):
     version = cursor.fetchone()[0]
 
     # select engine based on db engine to allow for spatial indexing
-
     if version.find("Maria") >= 0: # using MariaDB
         return ("ARIA",)
     
@@ -57,6 +56,7 @@ def get_engine(cursor):
     
     else:                          # using other
         return ("MYISAM",)
-    
+
+# return a SQL square for query building
 def square():
     return """PolyFromText('POLYGON((%s %s,%s %s,%s %s,%s %s,%s %s))')"""

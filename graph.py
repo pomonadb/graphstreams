@@ -82,21 +82,49 @@ class DBGraph():
     def num_edges(self):
         return len(self._edges)
 
+    def edge_tuple(self,eid):
+        if eid == None:
+            return None
+        else:
+            c = self._db.cursor() # get the cursor
+            sql = """SELECT DISTINCT * FROM {0} 
+                     WHERE `edge_id` = {1}""".format(self._name, eid)
+            c.execute(sql)
+            e = c.fetchone()
+            c.close()
+            return e
+
+    def degree(self,vid):
+        return 0
+    
     # Get the edges going into vertex specified by input vid
-    def pred(self, vid):
-        return self._dir_neighbors(True)
+    def epred_in(self, vid, e_set):
+        return self._dir_neighbors_in("dest_id", vid, e_set)
 
     # Get the dges coming out vertex specified by output uid
-    def succ(self, vid):
-        return self._dir_neighbors(False)
+    def esucc_in(self, vid, e_set):
+        return self._dir_neighbors_in("source_id", vid,  e_set)
 
-    def _dir_neighbors(self, pred):
+    def _dir_neighbors_in(self, col_name, vid,  e_set):
         
-        col_name = "`dest_id`" if pred else "`source_id`"
         
         c = self._db.cursor()
-        c.execute("SELECT UNIQUE(`edge_id`) FROM `edge` "
-                  "WHERE `{0}` = {1}".format(col_name, vid))
-        return c.fetchall()
         
+        select_params = (self._name, col_name, vid)
         
+        selection = """SELECT `edge_id`, `source_id`, `dest_id` FROM `{0}` 
+                     WHERE `{1}` = {2} """.format(*select_params)
+
+
+        if e_set == None:
+            selection += ""
+        elif len(e_set) > 0:
+            selection += "AND `edge_id` IN ({0})".format(",".join(map(str, list(e_set))))
+        else:
+            return []
+
+        c.execute(selection)
+        neighbors = c.fetchall()
+        return neighbors
+                  
+                  
