@@ -2,86 +2,15 @@
 import argparse
 import cProfile
 import mysql.connector
-from math import *
-from random import randrange
 from getpass import getpass
+
 
 from mapping import Mapping
 from graph import DBGraph as Graph
+from graph_gen import *
+from sql_helpers import *
 
-MIN_TIME = 0
-MAX_TIME = 2016
-TIME_RANGE = 10
-DENSITY = 0.5
-BATCH_SIZE = 1000
 
-def main():
-    global DENSITY
-    
-    parser = argparse.ArgumentParser(
-        """
-        A command-line interface for running temporal graph isomorphism algorithms.
-        """
-        )
-    
-    parser.add_argument("database", help="The name of the database")
-    parser.add_argument("query_table_name",
-                        help="the name of the table of the query graph")
-    parser.add_argument("data_table_name",
-                        help="the table of the data graph to be queried")
-    
-    parser.add_argument("-t", "--timer", action="store_true")
-    parser.add_argument("-v", "--verbose", action="store_true")
-    parser.add_argument("-r", "--as-root", action="store_true")
-    
-    parser.add_argument("-q", "--make-query", type=int)
-    parser.add_argument("-d", "--make-data", type=int)
-    parser.add_argument("-D", "--density", "--dens", type=float)
-    parser.add_argument("-C", "--force-clear", action="store_true")
-    args = parser.parse_args()
-
-    print(args.database, args.query_table_name, args.data_table_name,
-          args.timer, args.verbose, args.as_root, args.make_query,
-          args.make_data, args.density, args.force_clear)
-
-    try: 
-        password = getpass()
-        if len(password) > 0 or args.as_root:
-            if args.as_root:
-                db = mysql.connector.connect(user="root",
-                                             db = args.database,
-                                             passwd = password)
-            else:
-                db = mysql.connector.connect(db = args.database,
-                                             passwd = password)
-        else:
-            print("No password given")
-            db = mysql.connector.connect(db = args.database)
-    except mysql.connector.Error as err:
-        print(err)
-    else:
-
-        if args.make_data != None and args.make_data > 0:
-            d = DENSITY if args.density == None else args.density
-            make_graph(args.data_table_name, args.make_data, db,
-                       args.force_clear, density = d)
-        
-        if args.make_query != None and args.make_query > 0:
-            make_graph(args.query_table_name, args.make_query, db,
-                       args.force_clear)
-
-        # initalize the graph objects
-        query_graph = Graph(args.query_table_name, db)
-        data_graph = Graph(args.data_table_name, db)
-
-        print("q has size", len(query_graph.edges()))
-        print("G has size", len(data_graph.edges()))
-
-        # find all patterns
-        generic_query_proc(query_graph, data_graph)
-        db.commit()
-        db.close()
-    return 0
 
 
 def generic_query_proc(query_graph,data_graph):
@@ -103,8 +32,6 @@ def generic_query_proc(query_graph,data_graph):
 def subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
                     depth):
 
-    # print("|M| = ", iso_so_far.get_size(), "and |V(Q)| =",
-    #       query_graph.num_edges())
     print("search depth:", depth)
     if iso_so_far.get_size() >= query_graph.num_edges():
         print("Found a match!")
@@ -137,67 +64,97 @@ def record(iso):
     print(iso)
     return True
 
-def make_graph(tbl_name, num_edges, db, force_clear, density = 0.5):
-    global MIN_TIME
-    global MAX_TIME
-    
-    num_vertices = ceil(sqrt(num_edges/density))
 
-    print("Making an edge set for", tbl_name , "with", num_edges, "Edge")
+## The main function. Parses the command line arguments and sets up the
+## computation as specified.
+def main():
     
-    edges = set()
-    for i in range(0,num_edges):
-        u = randrange(0, num_vertices)
-        v = u
-        while v == u:
-            v = randrange(0, num_vertices)
+    parser = argparse.ArgumentParser(
+        """A command-line interface for running 
+        temporal graph isomorphism algorithms"""
+        )
 
-        times = []
-        times.append(randrange(MIN_TIME, MAX_TIME))
-        times.append(randrange(times[0], times[0] + TIME_RANGE))
+    # positional arguments
+    parser.add_argument("database", help="The name of the database")
+    
+    parser.add_argument("query_table_name",
+                        help="the name of the table of the query graph")
+
+    parser.add_argument("data_table_name",
+                        help="the table of the data graph to be queried")
+
+    # optional flags
+    parser.add_argument("-t", "--timer", action="store_true")
+    parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("-r", "--as-root", action="store_true")
+
+    # graph generation parameters
+    parser.add_argument("-q", "--make-query", type=int,
+                        help="The number of edges for the query graph")
+    
+    parser.add_argument("-d", "--make-data", type=int,
+                        help="The number pf edges for the data graph")
+    
+    parser.add_argument("-D", "--density", "--dens", type=float,
+                        help="The desired density of the data graph")
+                        
+    parser.add_argument("-C", "--force-clear", action="store_true",
+                        help="clear graph tables if they exist")
+    
+    parser.add_argument("--no-algo", dest="algo", action="store_false",
+                        help="do not run any algorithms, only graph generation")
+    
+    args = parser.parse_args()
+
+    print(args.database, args.query_table_name, args.data_table_name,
+          args.timer, args.verbose, args.as_root, args.make_query,
+          args.make_data, args.density, args.force_clear, args.algo)
+
+    try:
+        #get the password securely from the cli
+        password = getpass()
+        # if a password was supplied, or logging in as root
+        # This forces the user have a password to log in as root.
+        if len(password) > 0:
+            if args.as_root:
+                print("Logging in as root")
+                db = mysql.connector.connect(user="root",
+                                             db = args.database,
+                                             passwd = password)
+            else:
+                db = mysql.connector.connect(db = args.database,
+                                             passwd = password)
+        else:
+            print("No password given")
+            db = mysql.connector.connect(db = args.database)
             
-        edges.add((u,v,times[0],times[1],
-                   times[1], times[1],
-                   times[1], times[0],
-                   times[0], times[0],
-                   times[0], times[1]
-                 ))
-        
-    c = db.cursor()
-    
-    if force_clear:
-        c.execute("DROP TABLE IF EXISTS `{0}`".format(tbl_name))
-    
-    c.execute("""CREATE TABLE IF NOT EXISTS `{0}`(
-                 `edge_id` INT AUTO_INCREMENT PRIMARY KEY,
-                 `source_id` INT,
-                 `dest_id` INT,
-                 `time` GEOMETRY)""".format(tbl_name)              
-              )
+    except mysql.connector.Error as err:
+        print("""Connecting to MySQL failed. If the problem persists check
+                 password,
+                 username, and
+                 whether the database actually exists.""")
+    else:
 
-    insert_sql = """INSERT INTO `{0}` (`source_id`, `dest_id`, `time`)
-                    VALUES (%s,%s,PolyFromText(
-                               'POLYGON((%s %s,%s %s,%s %s,%s %s,%s %s))'
-                             )
-                           )""".format(tbl_name)
+        # make the DATA graph
+        make_graph(args.data_table_name, args.make_data, db, args.force_clear,
+                   dens = args.density)
 
-    batch_insert(db, insert_sql, edges)
-    c.close()
+        # Make the query graph with default density
+        make_graph(args.query_table_name, args.make_query, db, args.force_clear)
 
-def batch_insert(db, insert_sql, data):
-    global BATCH_SIZE
+        # initalize the graph objects
+        query_graph = Graph(args.query_table_name, db)
+        data_graph = Graph(args.data_table_name, db)
 
-    # get the data
-    cursor = db.cursor()
-    
-    # ensure the data is a list
-    data_list = list(data)
-    
-    for i in range(0, len(data_list), BATCH_SIZE):
-        cursor.executemany(insert_sql, data_list[i:i+BATCH_SIZE])
+        print("q has size", len(query_graph.edges()))
+        print("G has size", len(data_graph.edges()))
 
-    db.commit()
-    
-                     
-    
+        # find all patterns
+        if args.algo:
+            generic_query_proc(query_graph, data_graph)
+            
+        db.commit()
+        db.close()
+    return 0
+
 if __name__ == "__main__": main()
