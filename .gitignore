@@ -177,3 +177,4 @@ TSWLatexianTemp*
 #temp files
 *[#]*[#]*
 .*[#]*
+__pycache__/*
