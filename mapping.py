@@ -1,3 +1,5 @@
+from sql_helpers import *
+
 class Mapping:
     
     # initialize the mapping given an optional input list of pairs and whether
@@ -38,6 +40,14 @@ class Mapping:
         self._function.pop(e, None)
         self._inverse.pop(f, None)
 
+    def matched_ordered_list(self, dom_lst):
+        img = []
+        ## take the image of the input set (ordered list)
+        for x in dom_lst:
+            eid = x if type(x) is int else x[ID]
+            img.append(self.get(eid))
+        return img
+        
 
     def domain(self):
         return list(self._function.keys())
@@ -45,11 +55,12 @@ class Mapping:
     def image(self):
         return list(self._inverse.keys())
 
-    def get(self, x):
-        if x in self._function:
+    def get(self, x, warning = "WARNING!"):
+        if warning == None or x in self._function:
             return self._function[x]
         else:
-            print("edge ID", x, "not key in", self._function)
+            print("!" + ("="*35) + warning + "="*35 + "!")
+            print("\tedge ID", x, "not key in", self._function)
             return None
 
     def inverse(self, y):

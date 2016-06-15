@@ -2,6 +2,7 @@ from math import *
 from random import randrange
 
 from sql_helpers import *
+from temporal_helpers import *
 
 MIN_TIME = 0
 MAX_TIME = 2016
@@ -18,7 +19,7 @@ def make_graph(tbl_name, num_edges, db, force_clear, dens = -1):
         return False
 
     # use the global default if a bad value was given
-    density = DENSITY if dens < 0 else dens
+    density = DENSITY if dens == None or dens < 0 else dens
 
     # Calculate the number of vertices based on the function for a simple graph
     # D = |E|/(|N|(|N|-1))
@@ -36,7 +37,7 @@ def make_graph(tbl_name, num_edges, db, force_clear, dens = -1):
 
     # create the table withthe given name
     # tbl_name(edg_id, source_id, dest_id, time)
-    columns = ("edge_id", "source_id", "dest_id", "time")
+    columns = ("edge_id", "source_id", "dest_id", "start", "end", "time")
 
     create_params = (tbl_name,) + columns + get_engine(c)
     
@@ -45,16 +46,18 @@ def make_graph(tbl_name, num_edges, db, force_clear, dens = -1):
                  `{1}` INT AUTO_INCREMENT PRIMARY KEY,
                  `{2}` INT,
                  `{3}` INT,
-                 `{4}` GEOMETRY NOT NULL)
-                  ENGINE = {5}
+                 `{4}` INT,
+                 `{5}` INT,
+                 `{6}` GEOMETRY NOT NULL)
+                  ENGINE = {7}
                """.format(*(create_params)))
 
 
     insert_params = (tbl_name,square()) + columns[1:]
     
     # craft the insertion sql statement
-    insert_sql = """INSERT INTO `{0}` (`{2}`, `{3}`, `{4}`)
-                    VALUES (%s,%s,{1})
+    insert_sql = """INSERT INTO `{0}` (`{2}`, `{3}`, `{4}`, `{5}`, `{6}`)
+                    VALUES (%s,%s,%s,%s,{1})
                  """.format(*(insert_params))
     
     # insert everything
@@ -63,6 +66,8 @@ def make_graph(tbl_name, num_edges, db, force_clear, dens = -1):
     ## Add indices
     c.execute(index_sql("idx_vids", tbl_name, columns[0:2],
                         is_hash = True))
+
+    c.execute(index_sql("idx_start_end", tbl_name, columns[2:4]))
     
     c.execute("""ALTER TABLE `{0}` ADD SPATIAL INDEX (`time`)""".format(tbl_name))
     
@@ -97,19 +102,3 @@ def _generate_random_edge_set(num_edges, num_vertices):
         edges.add(polygon_tuple(u,v,times[0],times[1]))
         
     return edges
-
-# Create a closed sql polygon as an edge-tuple
-#  tf------tf
-#   |       |
-#  ts------ts
-# the repeat of the first and last edge is necessary for MySQL to close it
-def polygon_tuple(u,v,ts,tf):
-    return (u,v,
-            ts,tf,  tf,tf,  tf,ts,   ts,ts,  ts,tf)
-
-## The function successive edges takes two edges, e and f, and returns True if
-## they are head-to-tail. i.e \exists v, -e->(v)-f->.
-def successive_edges(e,f):
-    global TARGET
-    global SOURCE
-    return e[TARGET] == f[SOURCE]

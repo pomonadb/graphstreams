@@ -1,6 +1,8 @@
+ID = 0
 SOURCE = 1
 TARGET = 2
-ID = 0
+START_TIME = 3
+END_TIME = 4
 BATCH_SIZE = 1000
 
 ## create an index named on tbl(cols). That is_unique, is_spatial, and is_hash
@@ -63,3 +65,7 @@ def get_engine(cursor):
 # return a SQL square for query building
 def square():
     return """PolyFromText('POLYGON((%s %s,%s %s,%s %s,%s %s,%s %s))')"""
+
+def edge_intersect_suffix(isect_set):
+    sql_set = ",".join(map(str, list(isect_set)))
+    return "AND `edge_id` IN ({0})".format(sql_set)

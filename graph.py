@@ -1,3 +1,5 @@
+from sql_helpers import *
+
 class DBGraph():
 
     def __init__(self,table_name, db):
@@ -8,7 +10,11 @@ class DBGraph():
         self._meta_edges = set()
         self.iterlist = []
         self.vertices(True)
-        self.edges(True)
+        self.edge_tuples(True)
+
+
+    def __len__(self):
+        return len(self._edges)
 
     def __iter__(self, edge=True):
         self._iteration = 0
@@ -55,24 +61,54 @@ class DBGraph():
         else: 
             return self._vertices 
 
-    # get and or read the edge set
-    def edges(self, recalc = False):
-        if recalc or len(self._edges) <= 0:
-            self._vertices = set()
+    def edge_tuples(self, should_recalc = False):
+        if should_recalc or len(self._edges) <= 0:
             # open the cursor and execute the query
+            self._edges = set()
             c = self._db.cursor()
-            c.execute("""SELECT `edge_id` FROM `{0}`""".format(self._name))
+            c.execute("""SELECT `edge_id`,`source_id`,`dest_id`, `start`, `end` 
+                         FROM `{0}`""".format(self._name))
 
-            # add each edge to the vertex set
-            for eid in c:
-                self._edges.add(eid[0])
+            # add all edges to the edge set
+            self._edges = self._edges.union(c.fetchall())
                 
-            # clean up and return the result set
+            # clean up
             c.close()
             self.iterlist = list(self._edges)
-            return self._edges
-        else: 
-            return self._edges
+
+        return self._edges
+
+    def edge_tuples_in(self, join_set = None, should_recalc = False):
+        if should_recalc or len(self._edges) <= 0:
+
+            if join_set == None:
+                isect_sfx = ""
+            elif len(join_set) <= 0:
+                return set()
+            else:
+                isect_sfx == edge_intersection_suffix(join_set)
+
+                                                       
+            selection = """SELECT `edge_id`,`source_id`,`dest_id`, `start`, `end` 
+                           FROM `{0}` {1}""".format(self._name, isect_sfx)
+                
+            # execute the sql
+            c = self._db.cursor() # open the cursor
+            c.execute(selection)  # execute the query
+            edges = c.fetchall()  # save the results
+            c.close()             # close the connection
+            
+            return set(edges)     # return the results
+            
+        else:
+            return self._edges & set(join_set)
+                
+            
+        
+        
+    # get and or read the edge set
+    def edge_ids(self, should_recalc = False):
+        return list(map(lambda e: e[ID], self.edge_tuples(should_recalc)))
 
     # Get the number of vertices
     def num_vertices(self):
@@ -87,8 +123,9 @@ class DBGraph():
             return None
         else:
             c = self._db.cursor() # get the cursor
-            sql = """SELECT DISTINCT * FROM {0} 
-                     WHERE `edge_id` = {1}""".format(self._name, eid)
+            sql = """SELECT `edge_id`, `source_id`, `dest_id`, `start`, `end` FROM `{0}` 
+                     WHERE `edge_id` = {1}""".format(self._name, eid)                     
+                        
             c.execute(sql)
             e = c.fetchone()
             c.close()
@@ -96,6 +133,13 @@ class DBGraph():
 
     def degree(self,vid):
         return 0
+
+    def edegree(self, edge):
+        ## the edge being queried is {2} --> {3}
+        degree_sql = """SELECT COUNT(*) FROM `{0}` WHERE `source_id` = {3} OR
+                        `dest_id` = {2} OR (`source_id` = {2} AND `dest_id` = {3}
+                         AND NOT `edge_id` = {1})
+                     """.format(self._name, edge[ID], edge[SOURCE], edge[TARGET],)
     
     # Get the edges going into vertex specified by input vid
     def epred_in(self, vid, e_set):
@@ -107,19 +151,16 @@ class DBGraph():
 
     def _dir_neighbors_in(self, col_name, vid,  e_set):
         
-        
         c = self._db.cursor()
         
         select_params = (self._name, col_name, vid)
+        selection = """SELECT `edge_id`, `source_id`, `dest_id`, `start`, `end` 
+                       FROM `{0}` WHERE `{1}` = {2} """.format(*select_params)
         
-        selection = """SELECT `edge_id`, `source_id`, `dest_id` FROM `{0}` 
-                     WHERE `{1}` = {2} """.format(*select_params)
-
-
         if e_set == None:
             selection += ""
         elif len(e_set) > 0:
-            selection += "AND `edge_id` IN ({0})".format(",".join(map(str, list(e_set))))
+            selection += edge_intersect_suffix(e_set)
         else:
             return []
 
@@ -128,3 +169,4 @@ class DBGraph():
         return neighbors
                   
                   
+ 
