@@ -69,3 +69,7 @@ def square():
 def edge_intersect_suffix(isect_set):
     sql_set = ",".join(map(str, list(isect_set)))
     return "AND `edge_id` IN ({0})".format(sql_set)
+
+
+def label_table_name(base_name):
+    return "{0}_edge_label".format(base_name)

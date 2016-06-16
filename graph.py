@@ -110,6 +110,24 @@ class DBGraph():
     def edge_ids(self, should_recalc = False):
         return list(map(lambda e: e[ID], self.edge_tuples(should_recalc)))
 
+    
+    # get all the edges that match the edge label-wise 
+    def edge_ids_matching(self, eid, e_graph):
+        selection = """
+                      SELECT DISTINCT `l`.`edge_id` 
+                      FROM `{0}` AS `e`, `{1}` AS `l`  
+                      WHERE `e`.`edge_id` = {2} 
+                            AND `e`.`label` = `l`.`label`
+                    """.format(label_table_name(e_graph._name),
+                               label_table_name(self._name),
+                               eid)
+        
+        c = self._db.cursor()
+        c.execute(selection)
+        edge_ids = c.fetchall()
+        c.close
+        return set(edge_ids)
+    
     # Get the number of vertices
     def num_vertices(self):
         return len(self._vertices)
@@ -125,7 +143,7 @@ class DBGraph():
             c = self._db.cursor() # get the cursor
             sql = """SELECT `edge_id`, `source_id`, `dest_id`, `start`, `end` FROM `{0}` 
                      WHERE `edge_id` = {1}""".format(self._name, eid)                     
-                        
+
             c.execute(sql)
             e = c.fetchone()
             c.close()

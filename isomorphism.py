@@ -43,17 +43,18 @@ def subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
         candidates = refine_candidates(candidate_set[e], query_graph,
                                        data_graph, iso_so_far)
         
-        for f in candidates:
+        
+        for f in candidate_set[e]:
             # print("  "*depth, e, "|--?-->", f, "\t?")
             if is_joinable(exp_enforce, imp_enforce, query_graph, data_graph,
-                           iso_so_far, e, f):
+                           iso_so_far, e, f[ID]):
                 # Try to insert the pair and make a recursive call If it fails
                 # (because e was already mapped) skip this iteration
-                if iso_so_far.insert(e,f):
+                if iso_so_far.insert(e,f[ID]):
                     subgraph_search(iso_so_far, query_graph, data_graph,
                                     candidate_set, exp_enforce, imp_enforce,
                                     imp_simplify, depth + 1)
-                    iso_so_far.remove(e,f)
+                    iso_so_far.remove(e,f[ID])
                 else:
                     next
 
@@ -62,6 +63,9 @@ def subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
 def is_joinable(exp_enforce, imp_enforce, query_graph, data_graph, iso_so_far, eid, fid):
     edge = query_graph.edge_tuple(eid)
     fdge = data_graph.edge_tuple(fid)
+    if fdge == None:
+        print("WARNING:", fid, "is bad edge_id in", data_graph._name)
+    
     edge_tuples = list(query_graph.edge_tuples_in(iso_so_far.domain()))
     fdge_tuples = iso_so_far.matched_ordered_list(edge_tuples).append(fdge)
     
@@ -97,6 +101,7 @@ def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
         # for every e in query_graph there is an f in data_graph
         ffid = iso_so_far.get(eeid[ID])
         ffdge = data_graph.edge_tuple(ffid)
+        
         if pred and not successive_edges(ffdge,fdge):
             return False
         if not pred and not successive_edges(fdge,ffdge):
@@ -106,7 +111,9 @@ def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
 
     
 def filter_candidates(query_graph, data_graph, e):
-    return data_graph.edge_ids()
+    cands = data_graph.edge_ids_matching(e, query_graph)
+    print("There are", len(cands), "candidates for edge", e)
+    return cands
 
 def refine_candidates(candidates, query_graph, data_graph, iso_so_far):
     return candidates
