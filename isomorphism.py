@@ -1,6 +1,5 @@
 #! /usr/bin/python
 import argparse
-import cProfile
 import mysql.connector
 from getpass import getpass
 
