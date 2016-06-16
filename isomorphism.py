@@ -1,76 +1,140 @@
 #! /usr/bin/python
+
+## This file presents the command-line interface for the isomorphism
+## calculation, as well as provides the outline for the subgraph isomorphism procedure
+## Notable functions are
+##     generic_query_proc
+##       filter_candidates
+##       subgraph_search
+##         refine_candidates
+##         is_joinable
+##         subgraph_search
+##
+## N.B. The standard NextQueryEdge() function is missing, it is currently
+## defined in the order of query_graph.iterlist.
+
+# python library dependencies
 import argparse
 import mysql.connector
 from getpass import getpass
 
-from mapping import Mapping
-from graph import DBGraph as Graph
-from graph_gen import *
-from sql_helpers import *
+# local dependencies
+from mapping import Mapping         # for containing the isomorphism
+from graph import DBGraph as Graph  # for modeling the graphs
+from graph_gen import *             # general graph helpers (tuple operations)
+from sql_helpers import *           # general sql helpers
 
-
+# This function outlines the generic query process for any/every
+# branch-and-bound style subgraph-isomorphism algorithm.  It takes two DBGraph
+# objects, query_graph and datagraph, and the three semantics processing
+# functions, allowing it to be semantics-agnostic.
+# TODO: inject the functional dependencies for more CLI control?
 def generic_query_proc(query_graph, data_graph, exp_enforce, imp_enforce,
                        imp_simplify):
-    iso_so_far = Mapping(directed = True)
-    candidate_set = {}
-    for e in query_graph.edge_ids():
-        candidate_set[e] = filter_candidates(query_graph, data_graph, e)
-        if len(candidate_set[e]) == 0:
-            print("No viable candidates for ", e)
+    iso_so_far = Mapping(directed = True) # set up the isomorphism
+    candidate_set = {}                    # initialize the isomorphism
+
+
+    # TODO: preprocess the query graph
+
+    # iterate through the edges to generate candidate sets of locally
+    # label-matching edges
+    for edge in query_graph.edge_tuples(): 
+        candidate_set[edge[ID]] = filter_candidates(query_graph, data_graph,
+                                                    edge, exp_enforce)
+
+        # make sure there are viable results
+        if len(candidate_set[edge[ID]]) == 0:
+            print("No viable candidates for ", edge)
             return False
-        
+
+    # Search for a matching subgraph!
     done = subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
                            exp_enforce, imp_enforce, imp_simplify)
     print("Done searching!")
     return done
 
-    
+
+# This function recursively traverses the search space, taking the isomorphism as
+# it stands `iso_so_far`, the query and data graphs, the set of candidate sets,
+# the three semantics processing functions, and the search_depth
 def subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
                     exp_enforce, imp_enforce, imp_simplify, depth = 0):
 
+    # the depth represents ths size of the mapping. Ensure that this is consistent
     if depth != iso_so_far.get_size():
         print("!" + ("="*35) +"WARNING" + ("="*35)  + "! ")
-        print("\tsearch depth:", depth, "should be equal to |ISO|", iso_so_far.get_size(),
+        print("\tsearch depth:", depth, "should be equal to |ISO|:", iso_so_far.get_size(),
               depth == iso_so_far.get_size())
-        
+
+    # if the mapping and the query graph are the same size, i.e. every edge has
+    # been mapped, record the result.
     if depth >= query_graph.num_edges():
         print("Found a match!")
         return record(iso_so_far)
     
     else:
-        e = query_graph.iterlist[depth][ID]
+        # grab a new edgeid
+        eid = query_graph.iterlist[depth][ID]
         # print("  "*depth,"Searching matches for:", e)
-        candidates = refine_candidates(candidate_set[e], query_graph,
+
+        # refine the candidate set
+        candidates = refine_candidates(candidate_set[eid], query_graph,
                                        data_graph, iso_so_far)
         
-        
-        for f in candidate_set[e]:
+        # travese the candidates looking for a match
+        for f in candidates:
             # print("  "*depth, e, "|--?-->", f, "\t?")
+            
+            # Test whether the edge pair (e,f) can safely be added to the iso
             if is_joinable(exp_enforce, imp_enforce, query_graph, data_graph,
-                           iso_so_far, e, f[ID]):
+                           iso_so_far, eid, f[ID]):
+
                 # Try to insert the pair and make a recursive call If it fails
                 # (because e was already mapped) skip this iteration
                 if iso_so_far.insert(e,f[ID]):
+                    # perform recursion
                     subgraph_search(iso_so_far, query_graph, data_graph,
                                     candidate_set, exp_enforce, imp_enforce,
                                     imp_simplify, depth + 1)
+                    
+                    # either an iso was or wasnt found. either way, prune the branch
                     iso_so_far.remove(e,f[ID])
                 else:
-                    next
+                    #  the insertion failed, because e was already mapped, so
+                    #  none of the `f`s will work. move to a different e.
+                    break
 
 
-                    
-def is_joinable(exp_enforce, imp_enforce, query_graph, data_graph, iso_so_far, eid, fid):
-    edge = query_graph.edge_tuple(eid)
-    fdge = data_graph.edge_tuple(fid)
+
+# This function tests whether eid and fid can be added to iso_so_far based on
+# their topological and temporal semantics. In addition to these three, it takes
+# the boolean temporal semantics functions, the query graph and the data_graph
+def is_joinable(exp_enforce, imp_enforce, query_graph, data_graph, iso_so_far,
+                eid, fid):
+    
+    edge = query_graph.edge_tuple(eid) # computational chokepoint
+    fdge = data_graph.edge_tuple(fid)  # ^ here too
+
+    # if we messed up, alert the user, but avoid an error
     if fdge == None:
         print("WARNING:", fid, "is bad edge_id in", data_graph._name)
+        return False
+
+    # Get the matched edge tuples. fdge_tuples should be sorted based on the
+    # order of edge_tuples, so that edge_tuples[i] |---> fdge_tuples[i]
+    matched_edges = list(query_graph.edge_tuples_in(iso_so_far.domain()))
+    matched_fdges = list(iso_so_far.matched_ordered_list(matched_edges))
+
+    # add the current edges to check semantic consistency of new edges
+    matched_edges.append(edge)
+    matched_fdges.append(fdge)
+
+    print("trying to join", edge, "|-?->", fdge, "to", iso_so_far)
     
-    edge_tuples = list(query_graph.edge_tuples_in(iso_so_far.domain()))
-    fdge_tuples = iso_so_far.matched_ordered_list(edge_tuples).append(fdge)
     
-    return exp_enforce(edge_tuples, fdge_tuples) and \
-           imp_enforce(fdge_tuples) and \
+    return exp_enforce(matched_edges, matched_fdges) and \
+           imp_enforce(matched_fdges) and \
            struct_sems(query_graph, data_graph, iso_so_far, edge, fdge)
     
 
@@ -110,9 +174,12 @@ def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
     return True
 
     
-def filter_candidates(query_graph, data_graph, e):
-    cands = data_graph.edge_ids_matching(e, query_graph)
-    print("There are", len(cands), "candidates for edge", e)
+def filter_candidates(query_graph, data_graph, edge, exp_enforce):
+    
+    cands = data_graph.edge_tuples_matching(edge, query_graph)
+    print("There are", len(cands), "edges with matching labels for", edge)
+    cands = [fdge for fdge in cands if exp_enforce([edge],[fdge])]
+    print("There are", len(cands), "candidates for edge", edge)
     return cands
 
 def refine_candidates(candidates, query_graph, data_graph, iso_so_far):

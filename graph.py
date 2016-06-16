@@ -98,7 +98,10 @@ class DBGraph():
             edges = c.fetchall()  # save the results
             c.close()             # close the connection
             
-            return set(edges)     # return the results
+            if edges == None:   # if no matching results, return an empty set
+                return set()
+            else:               # otherwise return the set
+                return set(edges)
             
         else:
             return self._edges & set(join_set)
@@ -112,7 +115,7 @@ class DBGraph():
 
     
     # get all the edges that match the edge label-wise 
-    def edge_ids_matching(self, eid, e_graph):
+    def edge_ids_matching(self, edge, e_graph):
         selection = """
                       SELECT DISTINCT `l`.`edge_id` 
                       FROM `{0}` AS `e`, `{1}` AS `l`  
@@ -120,13 +123,32 @@ class DBGraph():
                             AND `e`.`label` = `l`.`label`
                     """.format(label_table_name(e_graph._name),
                                label_table_name(self._name),
-                               eid)
+                               edge[ID])
         
         c = self._db.cursor()
         c.execute(selection)
         edge_ids = c.fetchall()
         c.close
         return set(edge_ids)
+
+    def edge_tuples_matching(self,edge,e_graph):
+        selection = """
+                      SELECT DISTINCT `edges`.`edge_id`, `edges`.`source_id`, 
+                                      `edges`.`dest_id`, `edges`.`start`,
+                                      `edges`.`end`                  
+                      FROM `{0}` AS `other`, `{1}` AS `labels`, `{2}` AS `edges`
+                      WHERE `other`.`edge_id` = {3} 
+                            AND `other`.`label` = `labels`.`label`
+                            AND `labels`.`edge_id` = `edges`.`edge_id`
+                    """.format(label_table_name(e_graph._name),
+                               label_table_name(self._name),
+                               self._name, edge[ID])
+        
+        c = self._db.cursor()
+        c.execute(selection)
+        edges = c.fetchall()
+        c.close
+        return set(edges)
     
     # Get the number of vertices
     def num_vertices(self):

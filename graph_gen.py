@@ -1,4 +1,4 @@
-from math import *
+from math import ceil, sqrt
 from random import randrange, choice
 import string
 

@@ -26,6 +26,12 @@ class TimeInterval():
         else:
             self.duration = end - start
 
+    def __str__(self):
+        if self.is_empty():
+            return "emptyset"
+        else:
+            return "({0},{1})".format(self.start,self.end)
+            
     def __len__(self):
         return 1
 
@@ -120,58 +126,57 @@ class Explicit(Enum):
     INTERSECT = 3
 
     def enforce(sem, giv):
+        print("Enforcing", sem.name, "Semantics")
         cond = {
             Explicit.EXACT: Explicit._ex_cond,
             Explicit.CONTAIN: Explicit._cont_cond,
             Explicit.CONTAINED: Explicit._contd_cond,
             Explicit.INTERSECT: Explicit._isect_cond
         }
-        return lambda q, d: Explicit._enf(cond[sem], make_time(giv), q, d)
+        glob = {
+            Explicit.CONTAINED: Explicit._contd_cond,
+            Explicit.INTERSECT: Explicit._isect_cond,
+        }
+        glob_cond = glob.get(sem, Explicit._cont_cond)
+        
+        return lambda q, d: Explicit._enf(cond[sem], glob_cond, make_time(giv), q, d)
 
     ## quer_list one of the following:
     ##      a list of edges, mapped to dat_list, also a list of edges
     ##      a list of pairs of mapped edges, dat_list must be None
     ##      a list of TimeIntervals, matched to dat_list of time windows
     ##      a list of pairs of TimeIntervals, dat_list must be None
-    def _enf(rule, global_interval, quer_list, dat_list = None):
+    def _enf(rule, glob_rule, global_interval, quer_list, dat_list = None):
+        print("enforcing", rule.__name__, "for", global_interval, quer_list, dat_list)
         if quer_list == None or len(quer_list) == 0:
             return True
-        elif dat_list == None:  # quer_list must be of pairs
-            if len(quer_list[0]) != 2:
-                print("!"+"="*18+"WARNING: MALFORMED EXACTNESS COMPARISON"+"="*18+"!")
+        elif dat_list != None:  # quer_list must be of pairs
+            pairs = zip(quer_list, dat_list)
+        else:
+            pairs = quer_list
+                    
+        for (s, t) in pairs:
+            print("Comparing", s, "and", t)
+            if not (rule(*_to_interval(s,t)) and glob_rule(global_interval, _to_interval(t))):
+                print("no match")
                 return False
             
-            for (s, t) in quer_list:
-                if not (rule(s,t) and rule(global_interval, t)):
-                    return False
-        else:
-            for idx,s in quer_list:
-                t = dat_list[idx]
-                if not (rule(s,t) and rule(global_interval, t)):
-                    return False
-
-    def _to_interval(x, y = None):
-        if y == None:
-            if len(x) == 1:
-                return x
-            else:
-                return make_time(x)
-        else:    
-            if len(x) == 1 and len(y) == 1: # x,y are time windows
-                return (x,y)
-            elif len(x) > 1 and len(y) > 1:
-                return (make_time(x), make_time(y))
+        return True
                 
     def _ex_cond(t, s):
+        print("EXACT", t, s)
         return t == s
 
     def _cont_cond(t, s):
+        print("CONTAIN", t, s)
         return t >= s
 
     def _contd_cond(t, s):
+        print("CONTAINED", t, s)
         return t <= s
 
     def _isect_cond(t, s):
+        print("INTERSECT", t, s)
         return t.does_intersect(s)
 
                      
@@ -183,9 +188,9 @@ class Implicit(Enum):
     
     def simplify(sem):
         if sem == Implicit.CONCUR:
-            return lambda lst: reduce(lambda x, rst: x.intersect(rst), lst)
+            return big_intersect(lst)
         else:
-            return lambda lst: reduce(lambda x, rst: x.union(rst), lst)
+            return big_union(lst)
                  
     def enforce(sem):
         enf = {
@@ -202,7 +207,7 @@ class Implicit(Enum):
             return True
         else:
             t_set = map(lambda e: TimeInterval(e[START_TIME], e[END_TIME]), e_set)
-            return not simplify(Implicit.CONCUR, list(t_set)).is_empty()
+            return not Implicit.simplify(Implicit.CONCUR)(list(t_set)).is_empty()
     
     ## Enforce the strong consecutive semantics
     def _enf_consecs(e_set):
@@ -256,3 +261,16 @@ def make_time(e):
         return e
     else:
         return TimeInterval(*e[START_TIME:END_TIME+1])
+
+
+def _to_interval(x, y = None):
+    if y == None:
+        if len(x) == 1:
+            return x
+        else:
+            return make_time(x)
+    else:    
+        if len(x) == 1 and len(y) == 1: # x,y are time windows
+            return (x,y)
+        elif len(x) > 1 and len(y) > 1:
+            return (make_time(x), make_time(y))
