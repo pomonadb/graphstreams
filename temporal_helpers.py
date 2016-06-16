@@ -256,3 +256,29 @@ def make_time(e):
         return e
     else:
         return TimeInterval(*e[START_TIME:END_TIME+1])
+
+
+# makes a time interval as a union of the intervals of all input edges
+def big_union(edges):
+    if len(edges)<= 0:
+        return TimeInterval(inf, -inf)
+    else:
+        t = make_time(edges[0])
+        for e in edges[1:]:
+            t.union(make_time(e))
+        return t
+
+# makes a time interval as a union of the intervals of all input edges
+def big_intersect(edges):
+    if len(edges)<= 0:
+        return TimeInterval(inf, -inf)
+    else:
+        t = make_time(edges[0])
+        for e in edges[1:]:
+            t.intersect(make_time(e))
+        return t
+    
+            
+            
+        
+    
