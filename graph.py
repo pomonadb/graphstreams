@@ -6,15 +6,24 @@ from graph_gen import *
 
 class DBGraph():
 
-    def __init__(self,table_name, db):
+    def __init__(self,table_name, db, copy_num = 0, es = None):
         self._name = table_name
         self._db = db
+        self._copy_num = copy_num
         self._vertices = set()
-        self._edges = set()
         self._meta_edges = set()
         self.iterlist = []
+
+        #  if we were given an input edge set, create a graph based on it
+        if es == None or len(es) < 0:
+            self._edges = set()
+            self.edge_tuples(True)
+        else:
+            self._edges = set(es)
+            make_graph(self._name, len(es), self, True, edges = es)
+
+        # calculate the vertices
         self.vertices(True)
-        self.edge_tuples(True)
 
 
     def __len__(self):
@@ -39,7 +48,11 @@ class DBGraph():
             eid = self._iterlist[self._iteration]
             self._iteration += 1
             return eid
-        
+
+    def make_copy_with(self, es = None, vs = None):
+        copy_num = self._copy_num + 1
+        name = self._name + str(copy_num)
+        return DBGraph(name, self._db, copy_num , es, vs)
         
     # get and/or read the vertex-set
     def vertices(self, recalc = False):

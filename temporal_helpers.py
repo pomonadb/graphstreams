@@ -309,3 +309,7 @@ def big_intersect(edges):
             # print("\t",t)
             t = t.intersect(make_time(e))
     return t
+
+def make_new_edge(old, new_ival):
+    return e[:START_TIME] + (new_ival.start, new_ival.end) + e[END_TIME:])
+

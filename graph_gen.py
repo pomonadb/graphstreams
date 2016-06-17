@@ -13,22 +13,24 @@ NUM_LABELS = 5
 
 # This function creates a random graph and inserts it into a specified database
 # table. It also creates indices on the table.
-def make_graph(tbl_name, num_edges, db, force_clear, dens = -1):
+def make_graph(tbl_name, num_edges, db, force_clear, dens = -1, edges = None):
     global DENSITY
-    
-    # Check whether an appropriate number of edges was given
-    if num_edges == None or num_edges <= 0:
-        return False
 
-    # use the global default if a bad value was given
-    density = DENSITY if dens == None or dens < 0 else dens
+    if edges == None:
+        # Check whether an appropriate number of edges was given
+        if num_edges == None or num_edges <= 0:
+            return False
 
-    # Calculate the number of vertices based on the function for a simple graph
-    # D = |E|/(|N|(|N|-1))
-    # Here we round up so that we can use it in a range object.
-    num_vertices = ceil(sqrt(num_edges/density))
+        # use the global default if a bad value was given
+        density = DENSITY if dens == None or dens < 0 else dens
 
-    print("Making an edge set for", tbl_name , "with", num_edges, "Edge")
+        # Calculate the number of vertices based on the function for a simple graph
+        # D = |E|/(|N|(|N|-1))
+        # Here we round up so that we can use it in a range object.
+        num_vertices = ceil(sqrt(num_edges/density))
+
+        print("Making an edge set for", tbl_name , "with", num_edges, "Edge")
+        edges = _generate_random_edge_set(num_edges, num_vertices)
         
     c = db.cursor() # get the cursor
 
@@ -80,7 +82,7 @@ def _generate_random_edge_set(num_edges, num_vertices):
                 # pick an arbitrary start and end time
                 times = []
                 times.append(randrange(MIN_TIME, MAX_TIME)) #start
-                times.append(randrange(times[0], times[0] + TIME_RANGE)) # end
+                times.append(randrange(times[0]+1, times[0] + TIME_RANGE)) # end
 
                 edges.add(polygon_tuple(u,v,times[0],times[1]))
 

@@ -13,16 +13,15 @@ def transform(query, interval, sem):
     if sem[EXP] == Explicit.EXACT:
         return (query, interval, sem)
     else:
-        return tighten(*rewrite(*tighten(query, sem, interval)))[0]
+        es, s, ival = _tighten(*_rewrite(*_tighten(query.edge_tuples, sem, interval)))[0]
+        return (query.make_copy_with(es), s, ival)
 
 
 ## refine the explicit constraints based on global information and explicit
 ## semantics
-def tighten(q, sem, t = None):
+def _tighten(edges, oldq, sem, t = None):
     global EXP
     global IMP
-    
-    edges = q.edge_tuples()
     
     if sem[EXP] == Explicit.CONTAINED:
         tt = TimeInterval(inf, -inf)
@@ -44,22 +43,22 @@ def tighten(q, sem, t = None):
             new_edges.add(new_edge)
 
         
-        return (q, sem, t)
+        return (edges, oldq, sem, t)
 
 ## refine the explicit intervals based on local information and implicit and
 ## explict semantics
-def rewrite(q, sem, t = None):
+def _rewrite(edges, oldq, sem, t = None):
     new_edges = set()
     
     if sem[IMP] == Implicit.CONSEC_WK: # Wconsec.. No rewrites for now
-        return (q, sem, t)
+        return (edges, oldq, sem, t)
     
     elif sem[IMP] == Explicit.CONSEC_STR:  # Sconsec
         if sem[EXP] == Explicit.CONTAINED: # CONTAINED
-            for e in q.edge_tuples():
+            for e in edges():
                 # create the unions for the incoming and outgoing edges.
-                pred_ival = big_union(q.pred_in(e))
-                succ_ival = big_union(q.succ_in(e))
+                pred_ival = big_union(oldq.pred_in(e))
+                succ_ival = big_union(oldq.succ_in(e))
                 curr_ival = make_time(e)
 
                 # if they intersect, compare the intersection with the current
@@ -81,21 +80,17 @@ def rewrite(q, sem, t = None):
                     
         else:                   # Sconsec and CONTAIN or INTERSECT
             for e in q.edge_tuples():
-                new_ival = big_union(q.neighborhood(e)))
+                new_ival = big_union(oldq.neighborhood(e)))
                 new_edge = make_new_edge(e,new_ival)
                 new_edges.add(new_edge)
                 
     else:                       #  CONCUR
         if sem[EXP] == Explicit.CONTAIN or sem[EXP] == Explicit.INTERSECT:
-            edges = q.edge_tuples()
+            edges = oldq.edge_tuples()
             new_ival = big_intersect(edges))
             new_edges = set(map(lambda e: make_new_edge(e,new_ival), edges)) 
                 
-
-
-    return (q.with_edges(new_edges), sem, t)
+    return (new_edges, oldq, sem, t)
 
 
 
-def make_new_edge(old, new_ival):
-    return e[:START_TIME] + (new_ival.start, new_ival.end) + e[END_TIME:])

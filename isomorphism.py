@@ -23,6 +23,13 @@ from mapping import Mapping         # for containing the isomorphism
 from graph import DBGraph as Graph  # for modeling the graphs
 from graph_gen import *             # general graph helpers (tuple operations)
 from sql_helpers import *           # general sql helpers
+from query_rewrite import transform # the query rewriter
+
+GRAPH = 0                       # index of the Query graph
+IVAL = 1                        # index of the Query Global Interval
+SEMS = 2                        # Index of the semantics
+EXP = 0                         # index of the Explicit semantics
+IMP = 1                         # index of the Implicit semantcs
 
 
 # This function outlines the generic query process for any/every
@@ -30,19 +37,25 @@ from sql_helpers import *           # general sql helpers
 # objects, query_graph and datagraph, and the three semantics processing
 # functions, allowing it to be semantics-agnostic.
 # TODO: inject all functional dependencies for more CLI control?
-def generic_query_proc(query_graph, data_graph, exp_enforce, imp_enforce,
-                       imp_simplify):
+def generic_query_proc(query, data_graph, exp_enforce,imp_enforce,imp_simplify):
+    global EXP
+    global IMP
+    global GRAPH
+    global IVAL
+    global SEMS
+    
     iso_so_far = Mapping(directed = True) # set up the isomorphism
     candidate_set = {}                    # initialize the isomorphism
 
 
-    # TODO: preprocess the query graph
+    # preprocess the query graph
+    query = transform(*query)
 
     # iterate through the edges to generate candidate sets of locally
     # label-matching edges
-    for edge in query_graph.edge_tuples(): 
-        candidate_set[edge[ID]] = filter_candidates(query_graph, data_graph,
-                                                    edge, exp_enforce)
+    for edge in query[GRAPH].edge_tuples(): 
+        candidate_set[edge[ID]] = filter_candidates(query, data_graph, edge,
+                                                    exp_enforce)
 
         # make sure there are viable results
         if len(candidate_set[edge[ID]]) == 0:
@@ -50,7 +63,7 @@ def generic_query_proc(query_graph, data_graph, exp_enforce, imp_enforce,
             return False
 
     # Search for a matching subgraph!
-    done = subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
+    done = subgraph_search(iso_so_far, query, data_graph, candidate_set,
                            exp_enforce, imp_enforce, imp_simplify)
     print("Done searching!")
     return done
@@ -59,8 +72,9 @@ def generic_query_proc(query_graph, data_graph, exp_enforce, imp_enforce,
 # This function recursively traverses the search space, taking the isomorphism as
 # it stands `iso_so_far`, the query and data graphs, the set of candidate sets,
 # the three semantics processing functions, and the search_depth
-def subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
+def subgraph_search(iso_so_far, query, data_graph, candidate_set,
                     exp_enforce, imp_enforce, imp_simplify, depth = 0):
+    global GRAPH
 
     # the depth represents ths size of the mapping. Ensure that this is consistent
     if depth != iso_so_far.get_size():
@@ -70,17 +84,17 @@ def subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
 
     # if the mapping and the query graph are the same size, i.e. every edge has
     # been mapped, record the result.
-    if depth >= query_graph.num_edges():
+    if depth >= query[GRAPH].num_edges():
         print("Found a match!")
         return record(iso_so_far)
     
     else:
         # grab a new edgeid
-        edge = query_graph.iterlist[depth]
+        edge = query[GRAPH].iterlist[depth]
         # print("  "*depth,"Searching matches for:", edge[ID])
 
         # refine the candidate set
-        candidates = refine_candidates(candidate_set[edge[ID]], query_graph,
+        candidates = refine_candidates(candidate_set[edge[ID]], query[GRAPH],
                                        data_graph, iso_so_far)
         
         # travese the candidates looking for a match
@@ -88,14 +102,14 @@ def subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
             # print("   "*depth, edge[ID], "|--?-->", fdge[ID])
             
             # Test whether the edge pair (e,f) can safely be added to the iso
-            if is_joinable(exp_enforce, imp_enforce, query_graph, data_graph,
+            if is_joinable(exp_enforce, imp_enforce, query, data_graph,
                            iso_so_far, edge, fdge):
 
                 # insert the insertable pair
                 iso_so_far.insert(edge,fdge)
                 # perform recursion
                 # print("   "*depth, edge[ID],"|----->", fdge[ID], "Added successfully")
-                subgraph_search(iso_so_far, query_graph, data_graph,
+                subgraph_search(iso_so_far, query, data_graph,
                                 candidate_set, exp_enforce, imp_enforce,
                                 imp_simplify, depth + 1)
                     
@@ -109,9 +123,10 @@ def subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
 # This function tests whether eid and fid can be added to iso_so_far based on
 # their topological and temporal semantics. In addition to these three, it takes
 # the boolean temporal semantics functions, the query graph and the data_graph
-def is_joinable(exp_enforce, imp_enforce, query_graph, data_graph, iso_so_far,
+def is_joinable(exp_enforce, imp_enforce, query, data_graph, iso_so_far,
                 edge, fdge):
-
+    global GRAPH
+    
     # if edge or fdge is already mapped in some way, cant join
     if iso_so_far.already_mapped(edge,fdge):
         return False
@@ -138,7 +153,7 @@ def is_joinable(exp_enforce, imp_enforce, query_graph, data_graph, iso_so_far,
         # print("  "*30, "Explicit Sems passed")
         if imp_enforce(image):
             # print("  "*30, "Implicit Sems Passed!")
-            if struct_sems(query_graph, data_graph, iso_so_far, preimg[-1],
+            if struct_sems(query[GRAPH], data_graph, iso_so_far, preimg[-1],
                            image[-1]): 
                 # print("  "*30, "Structural Sems Passed!")
                 return True
@@ -190,15 +205,22 @@ def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
 
 # returns a set of edge tuples from data_graph that could possibly be matched to
 # edge in the query graph, based on the explicit constraint defined by exp_enforce
+<<<<<<< Updated upstream
+def filter_candidates(query, data_graph, edge, exp_enforce):
+    global GRAPH
+    
+    cands = data_graph.edge_tuples_matching(edge, query[GRAPH])
+=======
 def filter_candidates(query_graph, data_graph, edge, exp_enforce):
     
     cands = data_graph.edge_tuples_matching(edge, query_graph)
+>>>>>>> Stashed changes
     # print("There are", len(cands), "edges with matching labels for", edge)
     cands = [fdge for fdge in cands if exp_enforce([edge],[fdge])]
     # print("There are", len(cands), "candidates for edge", edge)
     return cands
 
-def refine_candidates(candidates, query_graph, data_graph, iso_so_far):
+def refine_candidates(candidates, query, data_graph, iso_so_far):
     return candidates
 
 def record(iso):
@@ -237,6 +259,12 @@ def assign_semantics(args):
 ## The main function. Parses the command line arguments and sets up the
 ## computation as specified.
 def main():
+    global IMP
+    global EXP
+    global GRAPH
+    global IVAL
+    global SEMS
+
     
     parser = argparse.ArgumentParser(
         """A command-line interface for running 
@@ -353,7 +381,7 @@ def main():
                       "ONE implicit semantics")
                 return False
         
-            (exp_sem, imp_sem) = assign_semantics(args)
+            sems = assign_semantics(args)
             
             if args.interval == None:
                 global_interval = TimeInterval()
@@ -364,7 +392,8 @@ def main():
             temp_semantics = (Explicit.enforce(exp_sem, global_interval),
                               Implicit.enforce(imp_sem),
                               Implicit.simplify(imp_sem))
-            generic_query_proc(query_graph, data_graph, *temp_semantics)
+            query = (query_graph, global_interval, sems)
+            generic_query_proc(query, data_graph, *temp_semantics)
             
         db.commit()
         db.close()
