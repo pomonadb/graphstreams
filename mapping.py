@@ -22,7 +22,7 @@ class Mapping:
 
     # Insert an edge pair into the set
     def insert(self,e,f):
-        if e in self._function or f in self._inverse:
+        if self.already_mapped(e,f):            
             return False
         else:
             self._size += 1
@@ -40,7 +40,7 @@ class Mapping:
         self._function.pop(e, None)
         self._inverse.pop(f, None)
 
-    def matched_ordered_list(self, dom_lst):
+    def image_of(self, dom_lst):
         img = []
         ## take the image of the input set (ordered list)
         for x in dom_lst:
@@ -48,7 +48,16 @@ class Mapping:
             img.append(self.get(eid))
         return img
         
-
+    def unzip(self):
+        """
+        Return a list of tuples, (preimage, image) of the mapping
+        """
+        tuple_list = list(self._function.items())
+        if len(tuple_list) <= 0:
+            return ((),())
+        else:
+            return list([t for t in zip(*tuple_list)])
+    
     def domain(self):
         return list(self._function.keys())
 
@@ -68,6 +77,10 @@ class Mapping:
             return self._inverse[x]
         else:
             return None
+
+    def already_mapped(self, e, f):
+        return e in self._function or f in self._inverse
+        
             
     def get_size(self):
         return self._size

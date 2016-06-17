@@ -16,10 +16,11 @@ from math import inf
 class TimeInterval():
     
     ## if start or end is None, then that direction is unbounded, so we define
-    ## (None,None) :==: (\infty, \infty). The interval is empty if start > end.
+    ## (None,None) :==: (\infty, \infty). The interval is empty if start > end. 
     def __init__(self, start = -inf, end = inf):
-        self.start = -inf if start < 0 else start
-        self.end = inf if end < 0 else end
+        # print(start, end)      
+        self.start = start
+        self.end = end
         
         if self.is_unbounded():
             self.duration = inf
@@ -73,7 +74,7 @@ class TimeInterval():
     def is_unbounded(self):
         return self.start == -inf or self.end == inf
         
-    def union(self, other, check_only):
+    def union(self, other):
         if self.is_empty():
             return other
         elif other.is_empty():
@@ -88,14 +89,19 @@ class TimeInterval():
             return TimeInterval(inf, -inf)
         elif other.is_empty():
             return TimeInterval(inf, -inf)
+        elif self.is_infty():
+            return other
+        elif other.is_infty():
+            return self
         else:
             new_start = max(self.start, other.start)
             new_end   = min(self.end, other.end)
-            if new_start > new_end:
-                return TimeInterval(inf,-inf)
+            new_ival = TimeInterval(new_start,new_end)
+            if new_ival.is_empty():
+                return TimeInterval(inf, -inf)
             else:
-                return TimeInterval(new_start,new_end)
-
+                return new_ival
+            
     def does_intersect(self, other):
         return not self.intersect(other).is_empty()
             
@@ -126,7 +132,7 @@ class Explicit(Enum):
     INTERSECT = 3
 
     def enforce(sem, giv):
-        print("Enforcing", sem.name, "Semantics")
+        # print("Enforcing", sem.name, "Semantics")
         cond = {
             Explicit.EXACT: Explicit._ex_cond,
             Explicit.CONTAIN: Explicit._cont_cond,
@@ -147,36 +153,39 @@ class Explicit(Enum):
     ##      a list of TimeIntervals, matched to dat_list of time windows
     ##      a list of pairs of TimeIntervals, dat_list must be None
     def _enf(rule, glob_rule, global_interval, quer_list, dat_list = None):
-        print("enforcing", rule.__name__, "for", global_interval, quer_list, dat_list)
+        # print("enforcing", rule.__name__, "for", global_interval, quer_list, dat_list)
         if quer_list == None or len(quer_list) == 0:
             return True
         elif dat_list != None:  # quer_list must be of pairs
             pairs = zip(quer_list, dat_list)
         else:
-            pairs = quer_list
+            pairs = quer_list  
+            # print(pairs)
                     
         for (s, t) in pairs:
-            print("Comparing", s, "and", t)
+            # print("Comparing", s, "and", t)
             if not (rule(*_to_interval(s,t)) and glob_rule(global_interval, _to_interval(t))):
-                print("no match")
+                # print("no match") 
                 return False
-            
+            else:
+                # print("MATCH!")
+                next
         return True
                 
     def _ex_cond(t, s):
-        print("EXACT", t, s)
+        # print("EXACT", t, s)    
         return t == s
 
     def _cont_cond(t, s):
-        print("CONTAIN", t, s)
+        # print("CONTAIN", t, s)
         return t >= s
 
     def _contd_cond(t, s):
-        print("CONTAINED", t, s)
+        # print("CONTAINED", t, s)
         return t <= s
 
     def _isect_cond(t, s):
-        print("INTERSECT", t, s)
+        # print("INTERSECT", t, s, t.does_intersect(s), t.intersect(s).is_empty()) 
         return t.does_intersect(s)
 
                      
@@ -188,11 +197,12 @@ class Implicit(Enum):
     
     def simplify(sem):
         if sem == Implicit.CONCUR:
-            return big_intersect(lst)
+            return big_intersect
         else:
-            return big_union(lst)
+            return big_union
                  
     def enforce(sem):
+        # print("Enforcing", sem.name, "Semantics")
         enf = {
             Implicit.CONCUR: Implicit._enf_conc,
             Implicit.CONSEC_WK: Implicit._enf_consecw,
@@ -203,23 +213,25 @@ class Implicit(Enum):
     
     ## Enforce the concurrent semantics
     def _enf_conc(e_set):
+        # print("CONCUR")
         if e_set == None:
             return True
         else:
-            t_set = map(lambda e: TimeInterval(e[START_TIME], e[END_TIME]), e_set)
-            return not Implicit.simplify(Implicit.CONCUR)(list(t_set)).is_empty()
+            t_set = [make_time(e) for e in e_set]
+            # print(list(t_set), len(e_set))
+            isect = big_intersect(list(t_set))
+            # print(isect)
+            return not isect.is_empty()
     
     ## Enforce the strong consecutive semantics
     def _enf_consecs(e_set):
         if e_set == None:
             return True
-        for e in e_set:
-            for f in e_set:
-                e_time = make_time(e)
-                f_time = make_time(f)
-                if successive_edges(e,f) and not e_time.does_intersect(f_time):
-                    return False
-                return True
+        for (e,et,f,ft) in [(e,make_time(e),f,make_time(f)) for e in e_set for f in e_set]:
+            if successive_edges(e,f) and not et.does_intersect(ft):
+                return False
+
+        return True
             
     ## enforce the weak consecutive semantics
     def _enf_consecw(e_set):
@@ -269,8 +281,10 @@ def _to_interval(x, y = None):
             return x
         else:
             return make_time(x)
-    else:    
-        if len(x) == 1 and len(y) == 1: # x,y are time windows
+    else:
+        if type(x) is int or type(y) is int:
+            print("ERROR: ONE OF", x, y, "IS NOT AN EDGE OR INTERVAL")
+        elif len(x) == 1 and len(y) == 1: # x,y are time windows
             return (x,y)
         elif len(x) > 1 and len(y) > 1:
             return (make_time(x), make_time(y))
@@ -282,7 +296,7 @@ def big_union(edges):
     else:
         t = make_time(edges[0])
         for e in edges[1:]:
-            t.union(make_time(e))
+            t = t.union(make_time(e))
         return t
 
 # makes a time interval as a union of the intervals of all input edges
@@ -292,5 +306,6 @@ def big_intersect(edges):
     else:
         t = make_time(edges[0])
         for e in edges[1:]:
-            t.intersect(make_time(e))
-        return t
+            # print("\t",t)
+            t = t.intersect(make_time(e))
+    return t

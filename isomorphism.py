@@ -24,11 +24,12 @@ from graph import DBGraph as Graph  # for modeling the graphs
 from graph_gen import *             # general graph helpers (tuple operations)
 from sql_helpers import *           # general sql helpers
 
+
 # This function outlines the generic query process for any/every
 # branch-and-bound style subgraph-isomorphism algorithm.  It takes two DBGraph
 # objects, query_graph and datagraph, and the three semantics processing
 # functions, allowing it to be semantics-agnostic.
-# TODO: inject the functional dependencies for more CLI control?
+# TODO: inject all functional dependencies for more CLI control?
 def generic_query_proc(query_graph, data_graph, exp_enforce, imp_enforce,
                        imp_simplify):
     iso_so_far = Mapping(directed = True) # set up the isomorphism
@@ -75,35 +76,33 @@ def subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
     
     else:
         # grab a new edgeid
-        eid = query_graph.iterlist[depth][ID]
-        # print("  "*depth,"Searching matches for:", e)
+        edge = query_graph.iterlist[depth]
+        # print("  "*depth,"Searching matches for:", edge[ID])
 
         # refine the candidate set
-        candidates = refine_candidates(candidate_set[eid], query_graph,
+        candidates = refine_candidates(candidate_set[edge[ID]], query_graph,
                                        data_graph, iso_so_far)
         
         # travese the candidates looking for a match
-        for f in candidates:
-            # print("  "*depth, e, "|--?-->", f, "\t?")
+        for fdge in candidates:
+            # print("   "*depth, edge[ID], "|--?-->", fdge[ID])
             
             # Test whether the edge pair (e,f) can safely be added to the iso
             if is_joinable(exp_enforce, imp_enforce, query_graph, data_graph,
-                           iso_so_far, eid, f[ID]):
+                           iso_so_far, edge, fdge):
 
-                # Try to insert the pair and make a recursive call If it fails
-                # (because e was already mapped) skip this iteration
-                if iso_so_far.insert(e,f[ID]):
-                    # perform recursion
-                    subgraph_search(iso_so_far, query_graph, data_graph,
-                                    candidate_set, exp_enforce, imp_enforce,
-                                    imp_simplify, depth + 1)
+                # insert the insertable pair
+                iso_so_far.insert(edge,fdge)
+                # perform recursion
+                # print("   "*depth, edge[ID],"|----->", fdge[ID], "Added successfully")
+                subgraph_search(iso_so_far, query_graph, data_graph,
+                                candidate_set, exp_enforce, imp_enforce,
+                                imp_simplify, depth + 1)
                     
-                    # either an iso was or wasnt found. either way, prune the branch
-                    iso_so_far.remove(e,f[ID])
-                else:
-                    #  the insertion failed, because e was already mapped, so
-                    #  none of the `f`s will work. move to a different e.
-                    break
+                # either an iso was or wasnt found. either way, prune the branch
+                iso_so_far.remove(edge,fdge)
+                
+                    
 
 
 
@@ -111,31 +110,47 @@ def subgraph_search(iso_so_far, query_graph, data_graph, candidate_set,
 # their topological and temporal semantics. In addition to these three, it takes
 # the boolean temporal semantics functions, the query graph and the data_graph
 def is_joinable(exp_enforce, imp_enforce, query_graph, data_graph, iso_so_far,
-                eid, fid):
-    
-    edge = query_graph.edge_tuple(eid) # computational chokepoint
-    fdge = data_graph.edge_tuple(fid)  # ^ here too
+                edge, fdge):
 
-    # if we messed up, alert the user, but avoid an error
-    if fdge == None:
-        print("WARNING:", fid, "is bad edge_id in", data_graph._name)
+    # if edge or fdge is already mapped in some way, cant join
+    if iso_so_far.already_mapped(edge,fdge):
         return False
+    
+    pre = 0
+    img = 1
 
     # Get the matched edge tuples. fdge_tuples should be sorted based on the
     # order of edge_tuples, so that edge_tuples[i] |---> fdge_tuples[i]
-    matched_edges = list(query_graph.edge_tuples_in(iso_so_far.domain()))
-    matched_fdges = list(iso_so_far.matched_ordered_list(matched_edges))
-
+    mapping = iso_so_far.unzip()
+    
     # add the current edges to check semantic consistency of new edges
-    matched_edges.append(edge)
-    matched_fdges.append(fdge)
+    # print("mapping", mapping)
+    # print("mapping[img]", mapping[img])
+    preimg = mapping[pre] + (edge,)
+    image  = mapping[img] + (fdge,)
+    # print("preimage", preimg)
+    # print("image", image)
 
-    print("trying to join", edge, "|-?->", fdge, "to", iso_so_far)
-    
-    
-    return exp_enforce(matched_edges, matched_fdges) and \
-           imp_enforce(matched_fdges) and \
-           struct_sems(query_graph, data_graph, iso_so_far, edge, fdge)
+    # print("trying to join")
+    # print("      ", edge, "|-?->", fdge, "to")
+    # print(iso_so_far)
+    if exp_enforce(preimg,image):
+        # print("  "*30, "Explicit Sems passed")
+        if imp_enforce(image):
+            # print("  "*30, "Implicit Sems Passed!")
+            if struct_sems(query_graph, data_graph, iso_so_far, preimg[-1],
+                           image[-1]): 
+                # print("  "*30, "Structural Sems Passed!")
+                return True
+            else:
+                # print("  "*30,"STRUCT SEMS FAILED!")
+                return False
+        else:
+            # print("IMPLICIT SEMS", imp_enforce.__name__,"FAILED")
+            return False
+    else:
+        # print("EXPLICIT SEMS", exp_enforce.__name__, "FAILED")
+        return False
     
 
 ## determines whether the addition of the pair edge-fdge to the mapping
@@ -155,16 +170,16 @@ def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
     # select the appropriate functions
     if pred:
         coincident_in = query_graph.epred_in
-        vid = edge[SOURCE]
+        # print("Find Preds of", edge)
     else:
         coincident_in = query_graph.esucc_in
-        vid = edge[TARGET]
+        # print("find Succs of", edge)
     
     # for every coincident edge mapped by the iso
-    for eeid in coincident_in(vid, iso_so_far.domain()):
+    for eedge in coincident_in(edge, iso_so_far.domain()):
         # for every e in query_graph there is an f in data_graph
-        ffid = iso_so_far.get(eeid[ID])
-        ffdge = data_graph.edge_tuple(ffid)
+        ffdge = iso_so_far.get(eedge)
+        # print("\t", fdge)
         
         if pred and not successive_edges(ffdge,fdge):
             return False
@@ -173,13 +188,14 @@ def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
 
     return True
 
-    
+# returns a set of edge tuples from data_graph that could possibly be matched to
+# edge in the query graph, based on the explicit constraint defined by exp_enforce
 def filter_candidates(query_graph, data_graph, edge, exp_enforce):
     
     cands = data_graph.edge_tuples_matching(edge, query_graph)
-    print("There are", len(cands), "edges with matching labels for", edge)
+    # print("There are", len(cands), "edges with matching labels for", edge)
     cands = [fdge for fdge in cands if exp_enforce([edge],[fdge])]
-    print("There are", len(cands), "candidates for edge", edge)
+    # print("There are", len(cands), "candidates for edge", edge)
     return cands
 
 def refine_candidates(candidates, query_graph, data_graph, iso_so_far):
@@ -201,8 +217,8 @@ def assign_semantics(args):
     i = None
     if args.EXACT:
         e = Explicit.EXACT
-    elif args.CONTAINED:
-        e = Explicit.CONTAINED
+    elif args.CONTAIN:
+        e = Explicit.CONTAIN
     elif args.CONTAINED:
         e = Explicit.CONTAINED
     else:

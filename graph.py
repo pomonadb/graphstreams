@@ -1,4 +1,8 @@
+#  This file presents a very friendly usable interface for a graph. Here is is
+#  linked to a database
+
 from sql_helpers import *
+from graph_gen import *
 
 class DBGraph():
 
@@ -182,12 +186,14 @@ class DBGraph():
                      """.format(self._name, edge[ID], edge[SOURCE], edge[TARGET],)
     
     # Get the edges going into vertex specified by input vid
-    def epred_in(self, vid, e_set):
-        return self._dir_neighbors_in("dest_id", vid, e_set)
+    def epred_in(self, e, p_set):
+        return [pred for pred in p_set if successive_edges(pred, e)]
+        # return self._dir_neighbors_in("dest_id", vid, e_set)
 
     # Get the dges coming out vertex specified by output uid
-    def esucc_in(self, vid, e_set):
-        return self._dir_neighbors_in("source_id", vid,  e_set)
+    def esucc_in(self, e, s_set):
+        return [succ for succ in s_set if successive_edges(e,succ)]
+        # return self._dir_neighbors_in("source_id", vid,  e_set)
 
     def _dir_neighbors_in(self, col_name, vid,  e_set):
         

@@ -6,8 +6,8 @@ from sql_helpers import *
 from temporal_helpers import *
 
 MIN_TIME = 0
-MAX_TIME = 2016
-TIME_RANGE = 10
+MAX_TIME = 10
+TIME_RANGE = 20
 DENSITY = 0.5
 NUM_LABELS = 5
 
@@ -63,25 +63,32 @@ def _generate_random_edge_set(num_edges, num_vertices):
     global MIN_TIME
     global TIME_RANGE
 
-    edges = set() # initialize accumulator
+    while True:
+        edges = set() # initialize accumulator
 
-    # for every edge
-    for i in range(0,num_edges):
+        # for every edge
+        for i in range(0,num_edges):
         
-        # pick a random start vertex
-        u = randrange(0, num_vertices)
+            # pick a random start vertex
+            u = randrange(0, num_vertices)
 
-        # get a random end vertex that is not a self-loop
-        v = u
-        while v == u:
-            v = randrange(0, num_vertices)
+            # get a random end vertex that is not a self-loop
+            v = u
+            while v == u:
+                v = randrange(0, num_vertices)
 
-        # pick an arbitrary start and end time
-        times = []
-        times.append(randrange(MIN_TIME, MAX_TIME)) #start
-        times.append(randrange(times[0], times[0] + TIME_RANGE)) # end
+                # pick an arbitrary start and end time
+                times = []
+                times.append(randrange(MIN_TIME, MAX_TIME)) #start
+                times.append(randrange(times[0], times[0] + TIME_RANGE)) # end
 
-        edges.add(polygon_tuple(u,v,times[0],times[1]))
+                edges.add(polygon_tuple(u,v,times[0],times[1]))
+
+        time_edges = map(lambda e: (-1,) + e, edges)
+        if Implicit.enforce(Implicit.CONCUR)(time_edges):
+            break
+        else:
+            edges = set()
         
     return edges
 
