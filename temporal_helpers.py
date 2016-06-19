@@ -13,6 +13,9 @@ from enum import Enum, unique
 from sql_helpers import *
 from math import inf
 
+EXP = 0
+IMP = 1
+
 class TimeInterval():
     
     ## if start or end is None, then that direction is unbounded, so we define
@@ -38,7 +41,10 @@ class TimeInterval():
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            return self.start == other.start and self.end == other.end
+            lit_eq =  self.start == other.start and self.end == other.end
+            both_infty = self.is_infty() and other.is_infty()
+            both_empty = self.is_empty() and other.is_empty()
+            return lit_eq or both_infty or both_empty
         else:
             return False
 
@@ -48,10 +54,11 @@ class TimeInterval():
     ## this is the contain semantics.
     ## t <= s iff t \subseteq s
     def __le__(self, other):
-        return self.start >= other.start and self.end <= other.end
+        lit_le = self.start >= other.start and self.end <= other.end
+        return self.is_empty or lit_le
 
     ## This is the contained semantics
-    ## t >= s iff s \subseteq t
+    ## t >= s iff s \subseteq t Note that (>=):== swap . (<=)
     def __ge__(self,other):
         return other.__le__(self)
 
@@ -153,8 +160,9 @@ class Explicit(Enum):
     ##      a list of TimeIntervals, matched to dat_list of time windows
     ##      a list of pairs of TimeIntervals, dat_list must be None
     def _enf(rule, glob_rule, global_interval, quer_list, dat_list = None):
-        # print("enforcing", rule.__name__, "for", global_interval, quer_list, dat_list)
+        print("enforcing", rule.__name__, "for", global_interval, quer_list, dat_list)
         if quer_list == None or len(quer_list) == 0:
+            # print("\tSuccess")
             return True
         elif dat_list != None:  # quer_list must be of pairs
             pairs = zip(quer_list, dat_list)
@@ -165,11 +173,12 @@ class Explicit(Enum):
         for (s, t) in pairs:
             # print("Comparing", s, "and", t)
             if not (rule(*_to_interval(s,t)) and glob_rule(global_interval, _to_interval(t))):
-                # print("no match") 
+                print("\tFAILURE") 
                 return False
             else:
                 # print("MATCH!")
                 next
+        print("\tSuccess")
         return True
                 
     def _ex_cond(t, s):
@@ -177,11 +186,11 @@ class Explicit(Enum):
         return t == s
 
     def _cont_cond(t, s):
-        # print("CONTAIN", t, s)
+        print(t, "CONTAIN", s )
         return t >= s
 
     def _contd_cond(t, s):
-        # print("CONTAINED", t, s)
+        # print(t, "CONTAINED (by)", s)
         return t <= s
 
     def _isect_cond(t, s):
@@ -259,6 +268,9 @@ def polygon_tuple(u,v,ts,tf):
     return (u,v,ts,tf,
             ts,tf,  tf,tf,  tf,ts,   ts,ts,  ts,tf)
 
+def polygon_tuple_with_id(eid, u, v, ts, tf):
+    return (eid,) + (polygon_tuple(u,v, ts, tf))
+
 ## The function successive edges takes two edges, e and f, and returns True if
 ## they are head-to-tail. i.e \exists v, -e->(v)-f->.
 def successive_edges(e,f):
@@ -291,25 +303,25 @@ def _to_interval(x, y = None):
 
 # makes a time interval as a union of the intervals of all input edges
 def big_union(edges):
-    if len(edges)<= 0:
+    if edges == None or len(edges)<= 0:
         return TimeInterval(inf, -inf)
     else:
-        t = make_time(edges[0])
-        for e in edges[1:]:
+        t = make_time(edges.pop())
+        for e in edges:
             t = t.union(make_time(e))
         return t
 
 # makes a time interval as a union of the intervals of all input edges
 def big_intersect(edges):
-    if len(edges)<= 0:
+    if edges == None or len(edges)<= 0:
         return TimeInterval(inf, -inf)
     else:
-        t = make_time(edges[0])
-        for e in edges[1:]:
+        t = make_time(edges.pop())
+        for e in edges:
             # print("\t",t)
             t = t.intersect(make_time(e))
     return t
 
 def make_new_edge(old, new_ival):
-    return e[:START_TIME] + (new_ival.start, new_ival.end) + e[END_TIME:])
+    return old[:START_TIME] + (new_ival.start, new_ival.end) + (old[END_TIME+1:])
 

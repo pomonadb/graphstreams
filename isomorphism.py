@@ -28,9 +28,6 @@ from query_rewrite import transform # the query rewriter
 GRAPH = 0                       # index of the Query graph
 IVAL = 1                        # index of the Query Global Interval
 SEMS = 2                        # Index of the semantics
-EXP = 0                         # index of the Explicit semantics
-IMP = 1                         # index of the Implicit semantcs
-
 
 # This function outlines the generic query process for any/every
 # branch-and-bound style subgraph-isomorphism algorithm.  It takes two DBGraph
@@ -139,12 +136,8 @@ def is_joinable(exp_enforce, imp_enforce, query, data_graph, iso_so_far,
     mapping = iso_so_far.unzip()
     
     # add the current edges to check semantic consistency of new edges
-    # print("mapping", mapping)
-    # print("mapping[img]", mapping[img])
     preimg = mapping[pre] + (edge,)
     image  = mapping[img] + (fdge,)
-    # print("preimage", preimg)
-    # print("image", image)
 
     # print("trying to join")
     # print("      ", edge, "|-?->", fdge, "to")
@@ -205,19 +198,13 @@ def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
 
 # returns a set of edge tuples from data_graph that could possibly be matched to
 # edge in the query graph, based on the explicit constraint defined by exp_enforce
-<<<<<<< Updated upstream
 def filter_candidates(query, data_graph, edge, exp_enforce):
     global GRAPH
     
     cands = data_graph.edge_tuples_matching(edge, query[GRAPH])
-=======
-def filter_candidates(query_graph, data_graph, edge, exp_enforce):
-    
-    cands = data_graph.edge_tuples_matching(edge, query_graph)
->>>>>>> Stashed changes
-    # print("There are", len(cands), "edges with matching labels for", edge)
+    print("There are", len(cands), "edges with matching labels for", edge)
     cands = [fdge for fdge in cands if exp_enforce([edge],[fdge])]
-    # print("There are", len(cands), "candidates for edge", edge)
+    print("There are", len(cands), "candidates for edge", edge)
     return cands
 
 def refine_candidates(candidates, query, data_graph, iso_so_far):
@@ -384,15 +371,17 @@ def main():
             sems = assign_semantics(args)
             
             if args.interval == None:
-                global_interval = TimeInterval()
+                global_interval = TimeInterval(inf,-inf) if args.CONTAINED else TimeInterval() 
             else:
                 global_interval = TimeInterval(*args.interval)
                 
             global_interval = TimeInterval(int())
-            temp_semantics = (Explicit.enforce(exp_sem, global_interval),
-                              Implicit.enforce(imp_sem),
-                              Implicit.simplify(imp_sem))
+            temp_semantics = (Explicit.enforce(sems[EXP], global_interval),
+                              Implicit.enforce(sems[IMP]),
+                              Implicit.simplify(sems[IMP]))
+            
             query = (query_graph, global_interval, sems)
+            
             generic_query_proc(query, data_graph, *temp_semantics)
             
         db.commit()

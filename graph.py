@@ -17,13 +17,14 @@ class DBGraph():
         #  if we were given an input edge set, create a graph based on it
         if es == None or len(es) < 0:
             self._edges = set()
-            self.edge_tuples(True)
         else:
             self._edges = set(es)
-            make_graph(self._name, len(es), self, True, edges = es)
+            self._iterlist = list(es)
+            make_graph(self._name, len(es), self._db, True, edges = es)
 
-        # calculate the vertices
+        # calculate the vertices 
         self.vertices(True)
+        self._iterlist = self.edge_tuples(True)
 
 
     def __len__(self):
@@ -49,10 +50,10 @@ class DBGraph():
             self._iteration += 1
             return eid
 
-    def make_copy_with(self, es = None, vs = None):
+    def make_copy_with(self, es = None):
         copy_num = self._copy_num + 1
         name = self._name + str(copy_num)
-        return DBGraph(name, self._db, copy_num , es, vs)
+        return DBGraph(name, self._db, copy_num , es)
         
     # get and/or read the vertex-set
     def vertices(self, recalc = False):
@@ -197,15 +198,35 @@ class DBGraph():
                         `dest_id` = {2} OR (`source_id` = {2} AND `dest_id` = {3}
                          AND NOT `edge_id` = {1})
                      """.format(self._name, edge[ID], edge[SOURCE], edge[TARGET],)
-    
+
+    def eneighborhood(self,eid, src, tgt, *args):
+        c = self._db.cursor()
+        c.execute("""
+                     SELECT `edge_id`, `source_id`, `dest_id`, `start`, `end` 
+                     FROM `{0}` 
+                     WHERE `dest_id` = {1} 
+                           OR `source_id` = {2}
+                  """.format(self._name, src, tgt))
+
+        return c.fetchall()
+        
     # Get the edges going into vertex specified by input vid
-    def epred_in(self, e, p_set):
-        return [pred for pred in p_set if successive_edges(pred, e)]
+    def epred_in(self, e, p_set = None):
+        if p_set == None:
+            iterset = self._edges
+        else:
+            iterset = set(p_set) & self._edges
+                
+        return [pred for pred in iterset if successive_edges(pred, e)]
         # return self._dir_neighbors_in("dest_id", vid, e_set)
 
     # Get the dges coming out vertex specified by output uid
-    def esucc_in(self, e, s_set):
-        return [succ for succ in s_set if successive_edges(e,succ)]
+    def esucc_in(self, e, s_set = None):
+        if s_set == None:
+            iterset = self._edges
+        else:
+            iterset = set(s_set) & self._edges
+        return [succ for succ in iterset if successive_edges(e,succ)]
         # return self._dir_neighbors_in("source_id", vid,  e_set)
 
     def _dir_neighbors_in(self, col_name, vid,  e_set):

@@ -15,6 +15,19 @@ NUM_LABELS = 5
 # table. It also creates indices on the table.
 def make_graph(tbl_name, num_edges, db, force_clear, dens = -1, edges = None):
     global DENSITY
+    
+    # tbl_name(edg_id, source_id, dest_id, time)
+    columns = ("edge_id", "source_id", "dest_id", "start", "end", "time")
+    
+    c = db.cursor() # get the cursor
+    create_params = (tbl_name,) + columns + get_engine(c)
+    insert_params = (tbl_name,square()) + columns
+            
+
+    # if specified as program argument, drop existing tables
+    if force_clear:
+        c.execute("DROP TABLE IF EXISTS `{0}`".format(tbl_name))
+        c.execute("DROP TABLE IF EXISTS `{0}`".format(label_table_name(tbl_name)))
 
     if edges == None:
         # Check whether an appropriate number of edges was given
@@ -32,25 +45,16 @@ def make_graph(tbl_name, num_edges, db, force_clear, dens = -1, edges = None):
         print("Making an edge set for", tbl_name , "with", num_edges, "Edge")
         edges = _generate_random_edge_set(num_edges, num_vertices)
         
-    c = db.cursor() # get the cursor
+        # generate the edges, create the graph, and then the labels
+        _make_edge_table(create_params, insert_params, edges, db)
+        _make_label_table(tbl_name, columns[0], edges, create_params[-1], db,
+                          NUM_LABELS)
+    else:
+        edges = [polygon_tuple_with_id(*e) for e in edges]
+        _make_edge_table(create_params, insert_params, edges, db, with_id = True)
+        _copy_label_table(db,tbl_name)
 
-    # if specified as program argument, drop existing tables
-    if force_clear:
-        c.execute("DROP TABLE IF EXISTS `{0}`".format(tbl_name))
-        c.execute("DROP TABLE IF EXISTS `{0}`".format(label_table_name(tbl_name)))
 
-    # create the table withthe given name
-    # tbl_name(edg_id, source_id, dest_id, time)
-    columns = ("edge_id", "source_id", "dest_id", "start", "end", "time")
-
-    create_params = (tbl_name,) + columns + get_engine(c)
-    insert_params = (tbl_name,square()) + columns[1:]
-
-    # generate the edges, create the graph, and then the labels
-    edges = _generate_random_edge_set(num_edges, num_vertices)
-    _make_edge_table(create_params, insert_params, edges, db)
-    _make_label_table(tbl_name, columns[0], edges, create_params[-1], db,
-                      NUM_LABELS)
 
     # clean up
     db.commit()
@@ -142,13 +146,13 @@ def _make_label_table(edge_tbl, edge_key, edges, engine, db, num_labels):
     return True
     
     
-def _make_edge_table(create_params, insert_params, edges, db):
+def _make_edge_table(create_params, insert_params, edges, db, with_id = False):
     # build the db table
 
     if len(create_params) < 8 or len(insert_params) < 7:
         print("ERROR: UNABLE TO BUILD TABLE, MALFORMED SQL")
         return False
-    else:
+    else:            
         create = """CREATE TABLE IF NOT EXISTS `{0}`(
                        `{1}` INT AUTO_INCREMENT NOT NULL,
                        `{2}` INT,
@@ -161,9 +165,14 @@ def _make_edge_table(create_params, insert_params, edges, db):
                  """.format(*create_params)
         
         # craft the insertion sql statement
-        insert_sql = """INSERT INTO `{0}` (`{2}`, `{3}`, `{4}`, `{5}`, `{6}`)
+        if with_id:
+            insert_sql = """INSERT INTO `{0}` (`{2}`, `{3}`, `{4}`, `{5}`, `{6}`,`{7}`)
+                            VALUES (%s,%s,%s,%s,%s,{1})
+                         """.format(*insert_params)
+        else:
+            insert_sql = """INSERT INTO `{0}` (`{3}`, `{4}`, `{5}`, `{6}`, `{7}`)
                             VALUES (%s,%s,%s,%s,{1})
-                     """.format(*insert_params)
+                         """.format(*insert_params)
 
         # craft the index creation statements
         vid_idx = index_sql("idx_vids", create_params[0], create_params[1:2], is_hash = True)
@@ -185,3 +194,14 @@ def _make_edge_table(create_params, insert_params, edges, db):
         db.commit()
         
         return True
+
+
+def _copy_label_table(db, table_name):
+    old_name = label_table_name(table_name[:-1])
+    new_name = label_table_name(table_name)
+    c = db.cursor()
+    c.execute("""CREATE TABLE `{0}` LIKE `{1}`""".format(new_name, old_name))
+    c.execute("""INSERT `{0}` SELECT * FROM `{1}`""".format(new_name, old_name))
+    db.commit()
+    c.close()
+    
