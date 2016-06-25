@@ -1,3 +1,7 @@
+# This file was initially a graph generator file, but has merged to be a graph
+# general helper file, specifying construction, constant, and construction
+# functions.
+
 from math import ceil, sqrt
 from random import randrange, choice
 import string
@@ -14,6 +18,19 @@ NUM_LABELS = 5
 # This function creates a random graph and inserts it into a specified database
 # table. It also creates indices on the table.
 def make_graph(tbl_name, num_edges, db, force_clear, dens = -1, edges = None):
+    """
+    Create a database table in db called tbl_name, with num_edges edges. If the
+    graph is there, and the force-clear flag is given, remove the table
+    first. If edges are given, create a table with a copy of tbl_name.
+
+    tbl_name -- str representing the base-name of the table
+    num_edges -- the number of edges in the graph, should correspond to number
+                 of table rows
+    db -- the database connection object in which to create the table
+    force_clear -- a boolean flag specifying to 
+    
+    """
+    
     global DENSITY
     
     # tbl_name(edg_id, source_id, dest_id, time)
@@ -65,6 +82,11 @@ def make_graph(tbl_name, num_edges, db, force_clear, dens = -1, edges = None):
 # this function generates a random edge set given two integers, the number of
 # edges, and the number of vertices.    
 def _generate_random_edge_set(num_edges, num_vertices):
+    """ 
+    generates a random set of edges using num_edges edges and num_vertices
+    vertices.
+    """
+    
     global MAX_TIME
     global MIN_TIME
     global TIME_RANGE
@@ -100,6 +122,17 @@ def _generate_random_edge_set(num_edges, num_vertices):
 
 
 def _make_label_table(edge_tbl, edge_key, edges, engine, db, num_labels):
+    """
+    Create a randoms set of labels. And add it to the database.
+
+    edge_tbl   -- the str name of the base table of edges
+    edge_key   -- the str name of the column
+    edges      -- the set of edges in the base table
+    engine     -- the engine to be used in constructing the table
+    db         -- the database connection object
+    num_labels -- the cardinality of the label set.
+    """
+    
     new_tbl_name = label_table_name(edge_tbl)
     
     params = (new_tbl_name, edge_key, edge_tbl, engine)
@@ -147,7 +180,16 @@ def _make_label_table(edge_tbl, edge_key, edges, engine, db, num_labels):
     
     
 def _make_edge_table(create_params, insert_params, edges, db, with_id = False):
-    # build the db table
+    """
+    Build a database table based on the number of edges.
+    
+    create_params -- a tuple of the table name, the 6 columns and the engine.
+    insert_params -- a tuple of the table name, the polygon object and the
+                     column names
+    edges         -- the edges to be added
+    db            -- the db connection object
+    with_id       -- the optional flag specifying whether edge_id has been given. 
+    """
 
     if len(create_params) < 8 or len(insert_params) < 7:
         print("ERROR: UNABLE TO BUILD TABLE, MALFORMED SQL")
@@ -197,6 +239,11 @@ def _make_edge_table(create_params, insert_params, edges, db, with_id = False):
 
 
 def _copy_label_table(db, table_name):
+    """
+    Create a duplicate label table, same data, different name
+
+    see label_table_name in sql_helpers for the naming scheme.
+    """
     old_name = label_table_name(table_name[:-1])
     new_name = label_table_name(table_name)
     c = db.cursor()

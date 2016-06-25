@@ -35,6 +35,17 @@ SEMS = 2                        # Index of the semantics
 # functions, allowing it to be semantics-agnostic.
 # TODO: inject all functional dependencies for more CLI control?
 def generic_query_proc(query, data_graph, exp_enforce,imp_enforce,imp_simplify):
+    """
+    Execute the generic query subgraph isomorphism function
+    
+    PARAMS:
+       query -- a tuple of the query graph, global_interval, and semantics tuple
+       data_graph -- a Graph object representing the graph to be queried
+       exp_enforce -- a function object enforcing the explicit semantics
+       imp_enforce -- a function object enforcing the explicit semantics
+       imp_simplify -- a function object defining the implicit simplification
+       
+    """
     global EXP
     global IMP
     global GRAPH
@@ -71,6 +82,19 @@ def generic_query_proc(query, data_graph, exp_enforce,imp_enforce,imp_simplify):
 # the three semantics processing functions, and the search_depth
 def subgraph_search(iso_so_far, query, data_graph, candidate_set,
                     exp_enforce, imp_enforce, imp_simplify, depth = 0):
+    """
+    The recursive subroutine that that searches the sample space
+
+    iso_so_far -- the state of the isomorphism to be searched
+    query -- the tuple of graph, global interval, and semantic tuple
+    data_graph -- the graph object being queried
+    candidate_set -- the list of candidate sets for each tuple
+    exp_enforce -- the function enforcing the explicit semantics
+    imp_enforce -- the function enforcing the implicit semantics
+    imp_simplify -- the simplification function for implicit semantics
+    depth -- the search depth (also the size of the current iso)
+    """
+    
     global GRAPH
 
     # the depth represents ths size of the mapping. Ensure that this is consistent
@@ -122,6 +146,18 @@ def subgraph_search(iso_so_far, query, data_graph, candidate_set,
 # the boolean temporal semantics functions, the query graph and the data_graph
 def is_joinable(exp_enforce, imp_enforce, query, data_graph, iso_so_far,
                 edge, fdge):
+    """
+    Determines whether the pair (edge, fdge) can be added to iso_so_fair
+
+    exp_enforce -- a function that enforces the explicit semantics
+    imp_enforce -- a function that enforces the implicit semantics
+    query       -- the query tuples graph x global interval x semantics tuple
+    data_graph  -- the graph to be queried
+    iso_so_far  -- the current search state of the isomorphism
+    edge        -- the edge in the query graph to be matched with fdge
+    fdge        -- the edge in the data graph to be matched with edge
+    """
+    
     global GRAPH
     
     # if edge or fdge is already mapped in some way, cant join
@@ -165,13 +201,38 @@ def is_joinable(exp_enforce, imp_enforce, query, data_graph, iso_so_far,
 ## iso_so_far violates the structural conditions specified by query_graph.
 ## data_graph is the data graph,
 def struct_sems(query_graph, data_graph, iso_so_far, edge, fdge):
-    params = lambda x: (query_graph, data_graph, iso_so_far, edge, fdge, x)
+    """
+    A boolean helper function that returns true if the addition of edge and fdge
+    matches the structural or topological basis. This is the static isJoinable
+
+    query_graph -- the graph object representing the pattern to be matched
+    data_graph  -- the graph object to be queried
+    iso_so_far  -- the current state of the isomorphism
+    edge        -- the query edge to be matched with fdge in iso_so_far
+    fdge        -- the data  edge to be matched with edge in iso_so_far
+    """
     
+    params = lambda x: (query_graph, data_graph, iso_so_far, edge, fdge, x)
+
     return _coincident_sems(*(params(True))) and \
            _coincident_sems(*(params(False)))
     
-
+# Determines whether the addition of the edge pair edge, fdge violates the
+# predecessor or the successor semantics depending on the boolean value of pred
 def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
+    """
+    A boolean helper function that returns true if the addition of edge and fdge
+    matches the structural semantics for predecessor if pred is True or
+    successor if pred is false.
+
+    query_graph -- the graph object representing the pattern to be matched
+    data_graph  -- the graph object to be queried
+    iso_so_far  -- the current state of the isomorphism
+    edge        -- the query edge to be matched with fdge in iso_so_far
+    fdge        -- the data  edge to be matched with edge in iso_so_far
+    pred        -- Whether the predecessor or the successor edes should be checked.
+    """
+    
     global SOURCE
     global TARGET
 
@@ -199,6 +260,15 @@ def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
 # returns a set of edge tuples from data_graph that could possibly be matched to
 # edge in the query graph, based on the explicit constraint defined by exp_enforce
 def filter_candidates(query, data_graph, edge, exp_enforce):
+    """
+    A function that reduces the sample space for edge in the data graph based on
+    the explicit semantics and label matching.
+
+    query -- A query Graph object representing the pattern to be matched
+    data_graph -- A query Graph object to be queried
+    edge -- the edge for which we must find candidate matches
+    exp_enforce -- the function defining the explicit semantics
+    """
     global GRAPH
     
     cands = data_graph.edge_tuples_matching(edge, query[GRAPH])
@@ -208,20 +278,31 @@ def filter_candidates(query, data_graph, edge, exp_enforce):
     return cands
 
 def refine_candidates(candidates, query, data_graph, iso_so_far):
+    """
+    STUB METHOD: Find a way to reduce the product sample space
+    """
     return candidates
 
 def record(iso):
+    """
+    Record the value of the iso
+
+    Currently just printo out the value.
+    """
     print(iso)
     return True
 
-def _label_match(e,f):
-    return True
-
-
 def check_temp_semantics(imp_sem, exp_sem):
+    """
+    Ensure that only one explicit semantics and one implicit semantics were chosen
+    """
     return sum(exp_sem) + sum(imp_sem) == 2
 
 def assign_semantics(args):
+    """
+    Parse the input arguments and return a tuple of enum types identifying the
+    temporal semantics pair
+    """
     e = None
     i = None
     if args.EXACT:

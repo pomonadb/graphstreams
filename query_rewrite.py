@@ -10,6 +10,8 @@ from sql_helpers import *
 # This transforms the query into an appropriate query. Assume that the query is
 # valid. I.e. <query, interval>  can return results obeying sems.
 def transform(query, interval, sems):
+    """Enforce the explicit semantics are enforced and then rewrite the query
+    based on the rewrite rules"""
     if sems[EXP] == Explicit.EXACT:
         return (query, interval, sems)
     else:
@@ -21,6 +23,7 @@ def transform(query, interval, sems):
 ## refine the explicit constraints based on global information and explicit
 ## semantics
 def _tighten(edges, oldq, sem, t = None):
+    """Tighten the explicit semantics of the query"""
     global EXP
     global IMP
 
@@ -59,6 +62,8 @@ def _tighten(edges, oldq, sem, t = None):
 ## refine the explicit intervals based on local information and implicit and
 ## explict semantics
 def _rewrite(edges, oldq, sem, t = None):
+    """Create a new query reducing the search space by shrinking (or expanding)
+    the intervals on the edges based on the implicit conditions and their neighbors."""
     new_edges = set()
     
     if sem[IMP] == Implicit.CONSEC_WK: # Wconsec.. No rewrites for now
