@@ -56,9 +56,6 @@ def generic_query_proc(query, data_graph, exp_enforce,imp_enforce,imp_simplify):
     candidate_set = {}                    # initialize the isomorphism
 
 
-    # preprocess the query graph
-    query = transform(*query)
-
     # iterate through the edges to generate candidate sets of locally
     # label-matching edges
     for edge in query[GRAPH].edge_tuples(): 
@@ -85,14 +82,14 @@ def subgraph_search(iso_so_far, query, data_graph, candidate_set,
     """
     The recursive subroutine that that searches the sample space
 
-    iso_so_far -- the state of the isomorphism to be searched
-    query -- the tuple of graph, global interval, and semantic tuple
-    data_graph -- the graph object being queried
+    iso_so_far    -- the state of the isomorphism to be searched
+    query         -- the tuple of graph, global interval, and semantic tuple
+    data_graph    -- the graph object being queried
     candidate_set -- the list of candidate sets for each tuple
-    exp_enforce -- the function enforcing the explicit semantics
-    imp_enforce -- the function enforcing the implicit semantics
-    imp_simplify -- the simplification function for implicit semantics
-    depth -- the search depth (also the size of the current iso)
+    exp_enforce   -- the function enforcing the explicit semantics
+    imp_enforce   -- the function enforcing the implicit semantics
+    imp_simplify  -- the simplification function for implicit semantics
+    depth         -- the search depth (also the size of the current iso)
     """
     
     global GRAPH
@@ -106,7 +103,7 @@ def subgraph_search(iso_so_far, query, data_graph, candidate_set,
     # if the mapping and the query graph are the same size, i.e. every edge has
     # been mapped, record the result.
     if depth >= query[GRAPH].num_edges():
-        print("Found a match!")
+        print("Found a match with depth: ",depth," and |q| = ", query[GRAPH].num_edges())
         return record(iso_so_far)
     
     else:
@@ -151,7 +148,7 @@ def is_joinable(exp_enforce, imp_enforce, query, data_graph, iso_so_far,
 
     exp_enforce -- a function that enforces the explicit semantics
     imp_enforce -- a function that enforces the implicit semantics
-    query       -- the query tuples graph x global interval x semantics tuple
+    query       -- the query tuples graph * global interval * semantics tuple
     data_graph  -- the graph to be queried
     iso_so_far  -- the current search state of the isomorphism
     edge        -- the edge in the query graph to be matched with fdge
@@ -289,6 +286,7 @@ def record(iso):
 
     Currently just printo out the value.
     """
+    
     print(iso)
     return True
 
@@ -332,7 +330,6 @@ def main():
     global GRAPH
     global IVAL
     global SEMS
-
     
     parser = argparse.ArgumentParser(
         """A command-line interface for running 
@@ -391,7 +388,11 @@ def main():
     parser.add_argument("-W", "--WCONSEC", action="store_true",
                         help="select the CONSEC_WK implicit semantics")
     parser.add_argument("-S", "--SCONSEC", action="store_true",
-                        help="select the CONSEC_STR implicit semantics")    
+                        help="select the CONSEC_STR implicit semantics")
+
+    # Flag for query rewriting
+    parser.add_argument("--rewrite", action="store_true", help="Should I perform query rewriting?")
+                        
     
     args = parser.parse_args()
     print(args)
@@ -456,12 +457,15 @@ def main():
             else:
                 global_interval = TimeInterval(*args.interval)
                 
-            global_interval = TimeInterval(int())
             temp_semantics = (Explicit.enforce(sems[EXP], global_interval),
                               Implicit.enforce(sems[IMP]),
                               Implicit.simplify(sems[IMP]))
-            
+
+            # create the query tuple and rewrite if necessary
             query = (query_graph, global_interval, sems)
+            print("Graph has size", len(query_graph))
+            query = transform(*query) if args.rewrite else query
+            print("Graph has size", len(query[GRAPH]))
             
             generic_query_proc(query, data_graph, *temp_semantics)
             

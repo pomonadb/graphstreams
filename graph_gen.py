@@ -14,6 +14,7 @@ MAX_TIME = 10
 TIME_RANGE = 20
 DENSITY = 0.5
 NUM_LABELS = 5
+MAX_SQL_INT = 2147483647
 
 # This function creates a random graph and inserts it into a specified database
 # table. It also creates indices on the table.
@@ -217,14 +218,18 @@ def _make_edge_table(create_params, insert_params, edges, db, with_id = False):
                          """.format(*insert_params)
 
         # craft the index creation statements
-        vid_idx = index_sql("idx_vids", create_params[0], create_params[1:2], is_hash = True)
+        vid_idx = index_sql("idx_vids", create_params[0], create_params[1:2],
+                            is_hash = True)
         time_idx = index_sql("idx_start_end",create_params[0], create_params[1:5])
-        rtree_idx = """ALTER TABLE `{0}` ADD SPATIAL INDEX (`time`)""".format(*create_params)
+        rtree_idx = """ALTER TABLE `{0}` ADD SPATIAL INDEX
+        (`time`)""".format(*create_params)
     
         # establish connection and insert everything
         c = db.cursor()
-        c.execute(create)                   # create the table
-        batch_insert(db, insert_sql, edges) # insert in reasonable chunks
+        c.execute(create)                                 # create the table
+        linted_edges = _lint_inftys(edges)
+        print(linted_edges)
+        batch_insert(db, insert_sql, linted_edges) # insert in chunks
         
         # add the indices
         c.execute(vid_idx)
@@ -252,3 +257,13 @@ def _copy_label_table(db, table_name):
     db.commit()
     c.close()
     
+def _lint_inftys(edges):
+    effect_inf = "~0"
+    return [_lint_edge(e) for e in edges]
+
+def _lint_edge(e):
+    el = list(e)
+    no_inf  = lambda x : MAX_SQL_INT if x == inf else x
+    no_ninf = lambda x : -1 if x == -inf else x        
+    return tuple([no_inf(no_ninf(x))for x in el])
+            

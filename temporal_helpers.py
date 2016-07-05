@@ -85,7 +85,7 @@ class TimeInterval():
         if self.is_empty():
             return other
         elif other.is_empty():
-            return other
+            return self
         else:
             new_start = min(self.start, other.start)
             new_end   = max(self.end, other.end)
@@ -160,7 +160,7 @@ class Explicit(Enum):
     ##      a list of TimeIntervals, matched to dat_list of time windows
     ##      a list of pairs of TimeIntervals, dat_list must be None
     def _enf(rule, glob_rule, global_interval, quer_list, dat_list = None):
-        print("enforcing", rule.__name__, "for", global_interval, quer_list, dat_list)
+        # print("enforcing", rule.__name__, "for", global_interval, quer_list, dat_list)
         if quer_list == None or len(quer_list) == 0:
             # print("\tSuccess")
             return True
@@ -173,12 +173,12 @@ class Explicit(Enum):
         for (s, t) in pairs:
             # print("Comparing", s, "and", t)
             if not (rule(*_to_interval(s,t)) and glob_rule(global_interval, _to_interval(t))):
-                print("\tFAILURE") 
+                # print("\tFAILURE") 
                 return False
             else:
                 # print("MATCH!")
                 next
-        print("\tSuccess")
+        # print("\tSuccess")
         return True
                 
     def _ex_cond(t, s):
@@ -186,7 +186,7 @@ class Explicit(Enum):
         return t == s
 
     def _cont_cond(t, s):
-        print(t, "CONTAIN", s )
+        # print(t, "CONTAIN", s )
         return t >= s
 
     def _contd_cond(t, s):
@@ -306,7 +306,7 @@ def big_union(edges):
     if edges == None or len(edges)<= 0:
         return TimeInterval(inf, -inf)
     else:
-        t = make_time(edges.pop())
+        t = TimeInterval(inf, -inf)
         for e in edges:
             t = t.union(make_time(e))
         return t
@@ -316,7 +316,7 @@ def big_intersect(edges):
     if edges == None or len(edges)<= 0:
         return TimeInterval(inf, -inf)
     else:
-        t = make_time(edges.pop())
+        t = TimeInterval(-inf, inf)
         for e in edges:
             # print("\t",t)
             t = t.intersect(make_time(e))

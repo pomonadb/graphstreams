@@ -53,7 +53,7 @@ def batch_insert(db, insert_sql, data):
     # ensure the data is a list
     data_list = list(data)
 
-    print("Batch inserting", data, " with", insert_sql)    
+    # print("Batch inserting", data, " with", insert_sql)    
     for i in range(0, len(data_list), BATCH_SIZE):
         cursor.executemany(insert_sql, data_list[i:i+BATCH_SIZE])
 
