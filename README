@@ -1,0 +1,48 @@
+# Isomorphism.py
+
+This is a sql-based temporal graph processing tool that allows for the automatic
+generation and computation of subgraph isomorphisms. The algorithm is intended
+to be highly customizable so that command line arguments can simply alter which
+specific semantics are being run. Currently, the only aspects that are available
+are to specify the implicit and explicit semantics, with the ultimate goal of
+being able to finely control which algorithm is selected for each piece of the
+`genericQueryProcedure` outline.
+
+## Usage
+
+For detailed usage information see `./isomorphism.py -h`. Here are some
+specific usage examples:
+
+```
+./isomorphism.py db query data -q 5 -d 100 --no-algo
+
+```
+
+Will gain access to the database called `db`, find or create a table called
+`query`, and add 5 randomly generated elements, find or create a table called
+`data`, and add 100 randomly generated elements. Then it will end without
+running any algorithms due to the `--no-algo` flag.  Use the `-C` option to
+completely overwrite the tables `query` and `data` if they exist.
+
+Similarly
+```
+./isomorphism.py db query data +I -S
+```
+will run the `IMPLICIT` explicit semantics and the `SCONSEC` implicit semantics.
+
+
+## Profiling
+
+To profile the algorithm, simply use the `profile` script included in the repo
+```
+./profile isomorphism <arguments...>
+```
+
+## Dependencies:
+
++ python3.5
++ MySQL 5.7+ or MariaDB
++ GraphViz
++ KCachegrind
++ pyprof2calltree
+

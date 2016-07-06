@@ -5,8 +5,15 @@ from sql_helpers import *
 from graph_gen import *
 
 class DBGraph():
+    """
+    A graph object providing read access to an edge-relational table
+    """
 
     def __init__(self,table_name, db, copy_num = 0, es = None):
+        """
+        Initialize the table. If edges are provided create the table with the given
+        edges, otherwise read the given table.
+        """
         self._name = table_name
         self._db = db
         self._copy_num = copy_num
@@ -28,9 +35,11 @@ class DBGraph():
 
 
     def __len__(self):
+        """The number of edges in the set"""
         return len(self._edges)
 
     def __iter__(self, edge=True):
+        """iterate over the edges,no order specified"""
         self._iteration = 0
         
         if edge:
@@ -43,6 +52,7 @@ class DBGraph():
         return self
 
     def __next__(self):
+        """Get the next step of the iteration"""
         if self._iteration >= len(self._edges):
             raise StopIteration
         else:
@@ -51,12 +61,14 @@ class DBGraph():
             return eid
 
     def make_copy_with(self, es = None):
+        """Make a copy of the edges"""
         copy_num = self._copy_num + 1
         name = self._name + str(copy_num)
-        return DBGraph(name, self._db, copy_num , es)
+        return DBGraph(name, self._db, copy_num , es=es)
         
     # get and/or read the vertex-set
     def vertices(self, recalc = False):
+        """Get the vertices, If recalc is True, reread the vertices from the db table"""
         if recalc or len(self._vertices) <= 0:
             self._vertices = set()
             # open the cursor and execute the query
@@ -80,6 +92,8 @@ class DBGraph():
             return self._vertices 
 
     def edge_tuples(self, should_recalc = False):
+        """Get the edge tuples, if should_recalc is True, reread the edges from
+        the table"""
         if should_recalc or len(self._edges) <= 0:
             # open the cursor and execute the query
             self._edges = set()
@@ -97,6 +111,8 @@ class DBGraph():
         return self._edges
 
     def edge_tuples_in(self, join_set = None, should_recalc = False):
+        """Get the edge tuples in the specified join_set. Perform in memory
+        intersection if should_recalc is False, and SQL operations otherwise."""
         if should_recalc or len(self._edges) <= 0:
 
             if join_set == None:
@@ -129,11 +145,17 @@ class DBGraph():
         
     # get and or read the edge set
     def edge_ids(self, should_recalc = False):
+        """Perform an in-memory traversal of the edge_tuples to get the edge ids."""
         return list(map(lambda e: e[ID], self.edge_tuples(should_recalc)))
 
     
     # get all the edges that match the edge label-wise 
     def edge_ids_matching(self, edge, e_graph):
+        """Get the edge ids that have labels matching the label of edge in
+           e_graph
+          
+           SQL OPERATION
+        """
         selection = """
                       SELECT DISTINCT `l`.`edge_id` 
                       FROM `{0}` AS `e`, `{1}` AS `l`  
@@ -153,6 +175,10 @@ class DBGraph():
         return self._name
 
     def edge_tuples_matching(self,edge,e_graph):
+        """
+        Get the edge tuples in self matching the label of edge in e_graph.
+        """
+        
         selection = """
                       SELECT DISTINCT `edges`.`edge_id`, `edges`.`source_id`, 
                                       `edges`.`dest_id`, `edges`.`start`,
@@ -173,13 +199,16 @@ class DBGraph():
     
     # Get the number of vertices
     def num_vertices(self):
+        """Get the number of vertices in the graph"""
         return len(self._vertices)
     
     # Get the number of edges
     def num_edges(self):
+        """Get the number of edges in the graph, the number of rows in the table"""
         return len(self._edges)
 
     def edge_tuple(self,eid):
+        """Get the tuple from the given edge id (SQL)"""
         if eid == None:
             return None
         else:
@@ -192,17 +221,21 @@ class DBGraph():
             c.close()
             return e
 
-    def degree(self,vid):
-        return 0
-
     def edegree(self, edge):
+        """Get the degree of the edge, i.e. the number of successor and
+        predecessor edges to edge (SQL)"""
         ## the edge being queried is {2} --> {3}
         degree_sql = """SELECT COUNT(*) FROM `{0}` WHERE `source_id` = {3} OR
                         `dest_id` = {2} OR (`source_id` = {2} AND `dest_id` = {3}
                          AND NOT `edge_id` = {1})
-                     """.format(self._name, edge[ID], edge[SOURCE], edge[TARGET],)
+                     """.format(self._name, edge[ID], edge[SOURCE], edge[TARGET])
 
     def eneighborhood(self,eid, src, tgt, *args):
+        """
+        Get the edges that go into src and out of tgt. *args collects the
+        remaining fields of the input edge, allowing this to be called as 
+        eneighborhood(*edge) where edge is an edge_tuple.
+        """
         c = self._db.cursor()
         c.execute("""
                      SELECT `edge_id`, `source_id`, `dest_id`, `start`, `end` 
@@ -215,6 +248,10 @@ class DBGraph():
         
     # Get the edges going into vertex specified by input vid
     def epred_in(self, e, p_set = None):
+        """Gets the predecessors of e in the predecessor set p_set. If no set is given,
+        return all predecessors (SQL)
+
+        """
         if p_set == None:
             iterset = self._edges
         else:
@@ -225,6 +262,8 @@ class DBGraph():
 
     # Get the dges coming out vertex specified by output uid
     def esucc_in(self, e, s_set = None):
+        """get the successors of e in the successor set s_set, if s_set is None
+        return all edges (SQL)"""
         if s_set == None:
             iterset = self._edges
         else:
@@ -233,6 +272,11 @@ class DBGraph():
         # return self._dir_neighbors_in("source_id", vid,  e_set)
 
     def _dir_neighbors_in(self, col_name, vid,  e_set):
+        """"
+        Get the directed neighbors of vid that are in the given edge set.
+        col_name allows the user to specify whether which column should be
+        matched to vid.
+        """
         
         c = self._db.cursor()
         

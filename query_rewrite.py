@@ -6,25 +6,30 @@
 from temporal_helpers import *
 from sql_helpers import *
 
-
 # This transforms the query into an appropriate query. Assume that the query is
 # valid. I.e. <query, interval>  can return results obeying sems.
 def transform(query, interval, sems):
+    """Enforce the explicit semantics are enforced and then rewrite the query
+    based on the rewrite rules"""
     if sems[EXP] == Explicit.EXACT:
         return (query, interval, sems)
     else:
-        new_query = _tighten(*_rewrite(*_tighten(query.edge_tuples(), query, sems, interval)))
+        edges = query.edge_tuples()
+        print("START:", len(edges))
+        new_query = _tighten(*_rewrite(*_tighten(edges, query, sems, interval)))
         new_q_graph = query.make_copy_with(new_query[0])
-        return (new_q_graph, *new_query[1:])
+        return (new_q_graph, new_query[3], new_query[2])
 
 
 ## refine the explicit constraints based on global information and explicit
 ## semantics
 def _tighten(edges, oldq, sem, t = None):
+    """Tighten the explicit semantics of the query"""
     global EXP
     global IMP
 
-    new_edges = set()
+    new_edges = []
+    tq = t
     
     if sem[EXP] == Explicit.CONTAINED:
         # TODO Turn this into one loop
@@ -40,31 +45,36 @@ def _tighten(edges, oldq, sem, t = None):
         # be the union of tq and T(e)
         for e in edges:
             new_ti = make_time(e).union(tq)
-            new_edges.add(make_new_edge(e, new_ti))
+            new_edges.append(make_new_edge(e, new_ti))
             
-        return (edges, oldq, sem, tq)
     else:
         # otherwise, chop off the parts of the edges that dont intersect with
         # the global interval. But skip it if there's no given interval, or if t
         # is gross.
-        if t != None and t != is_infty():
+        if t != None and not t.is_infty():
             for e in edges:            
                 new_ti = make_time(e).intersect(t)
                 new_edge = make_new_edge(e, new_ti)
-                new_edges.add(new_edge)
-
+                new_edges.append(new_edge)
+        else:
+            new_edges = edges    
         
-        return (edges, oldq, sem, t)
+
+    # Return the new edge set, the old query object, the semantics and the query
+    # interval.
+    return (new_edges, oldq, sem, tq)
 
 ## refine the explicit intervals based on local information and implicit and
 ## explict semantics
 def _rewrite(edges, oldq, sem, t = None):
+    """Create a new query reducing the search space by shrinking (or expanding)
+    the intervals on the edges based on the implicit conditions and their neighbors."""
     new_edges = set()
     
     if sem[IMP] == Implicit.CONSEC_WK: # Wconsec.. No rewrites for now
         return (edges, oldq, sem, t)
     
-    elif sem[IMP] == Implicit.CONSEC_STR:  # sconsec
+    elif sem[IMP] == Implicit.CONSEC_STR:  # Sconsec
         if sem[EXP] == Explicit.CONTAINED: # CONTAINED
             for e in edges:
                 # create the unions for the incoming and outgoing edges.
@@ -72,11 +82,14 @@ def _rewrite(edges, oldq, sem, t = None):
                 succ_ival = big_union(oldq.esucc_in(e))
                 curr_ival = make_time(e)
 
-                # if they intersect, compare the intersection with the current
-                # interval
+                # if the predecessor, successor, or current interval is empty,
+                # do nothing
                 if pred_ival.is_empty() or succ_ival.is_empty() \
                    or curr_ival.is_empty():
                     return (edges, oldq, sem, t)
+
+                # if they intersect, compare the intersection with the current
+                # interval
                 if succ_ival.does_intersect(pred_ival):
                     te = make_time(e)
                     nbhd_ival = succ_ival.intersect(pred_ival)
@@ -110,8 +123,10 @@ def _rewrite(edges, oldq, sem, t = None):
         if sem[EXP] == Explicit.CONTAIN or sem[EXP] == Explicit.INTERSECT:
             edges = oldq.edge_tuples()
             new_ival = big_intersect(edges)
-            new_edges = set(map(lambda e: make_new_edge(e,new_ival), edges)) 
-                
+            new_edges = set(map(lambda e: make_new_edge(e,new_ival), edges))
+        else:
+            new_edges = edges
+
     return (new_edges, oldq, sem, t)
 
 
