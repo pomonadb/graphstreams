@@ -149,6 +149,9 @@ class DBGraph():
         c.close
         return set(edge_ids)
 
+    def name(self):
+        return self._name
+
     def edge_tuples_matching(self,edge,e_graph):
         selection = """
                       SELECT DISTINCT `edges`.`edge_id`, `edges`.`source_id`, 
