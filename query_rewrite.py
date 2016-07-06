@@ -18,7 +18,7 @@ def transform(query, interval, sems):
         print("START:", len(edges))
         new_query = _tighten(*_rewrite(*_tighten(edges, query, sems, interval)))
         new_q_graph = query.make_copy_with(new_query[0])
-        return (new_q_graph, *new_query[1:])
+        return (new_q_graph, new_query[3], new_query[2])
 
 
 ## refine the explicit constraints based on global information and explicit

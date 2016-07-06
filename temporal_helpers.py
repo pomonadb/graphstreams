@@ -138,6 +138,7 @@ class Explicit(Enum):
     CONTAINED = 2
     INTERSECT = 3
 
+    # ENUM -> TimeInterval -> Set Edge -> Set Edge -> Bool
     def enforce(sem, giv):
         # print("Enforcing", sem.name, "Semantics")
         cond = {
@@ -209,7 +210,8 @@ class Implicit(Enum):
             return big_intersect
         else:
             return big_union
-                 
+
+    # ENUM -> Set Edge -> Bool
     def enforce(sem):
         # print("Enforcing", sem.name, "Semantics")
         enf = {

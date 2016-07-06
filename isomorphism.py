@@ -37,7 +37,7 @@ SEMS = 2                        # Index of the semantics
 def generic_query_proc(query, data_graph, exp_enforce,imp_enforce,imp_simplify, options):
     """
     Execute the generic query subgraph isomorphism function
-    
+ 
     PARAMS:
        query        -- a tuple of the query graph, global_interval, and semantics tuple
        data_graph   -- a Graph object representing the graph to be queried
@@ -139,9 +139,6 @@ def subgraph_search(iso_so_far, query, data_graph, candidate_set,
                 # either an iso was or wasnt found. either way, prune the branch
                 iso_so_far.remove(edge,fdge)
                 
-                    
-
-
 
 # This function tests whether eid and fid can be added to iso_so_far based on
 # their topological and temporal semantics. In addition to these three, it takes
@@ -165,38 +162,27 @@ def is_joinable(exp_enforce, imp_enforce, query, data_graph, iso_so_far,
     # if edge or fdge is already mapped in some way, cant join
     if iso_so_far.already_mapped(edge,fdge):
         return False
+    else:
+        
+        iso_so_far.add_to_buffer(edge,fdge)
     
-    pre = 0
-    img = 1
-
-    # Get the matched edge tuples. fdge_tuples should be sorted based on the
-    # order of edge_tuples, so that edge_tuples[i] |---> fdge_tuples[i]
-    mapping = iso_so_far.unzip()
-    
-    # add the current edges to check semantic consistency of new edges
-    preimg = mapping[pre] + (edge,)
-    image  = mapping[img] + (fdge,)
-
     # print("trying to join")
     # print("      ", edge, "|-?->", fdge, "to")
     # print(iso_so_far)
-    if skip_temp or exp_enforce(preimg,image):
-        # print("  "*30, "Explicit Sems passed")
-        if skip_temp or imp_enforce(image):
-            # print("  "*30, "Implicit Sems Passed!")
-            if struct_sems(query[GRAPH], data_graph, iso_so_far, preimg[-1],
-                           image[-1]): 
-                # print("  "*30, "Structural Sems Passed!")
-                return True
-            else:
-                # print("  "*30,"STRUCT SEMS FAILED!")
-                return False
+    if skip_temp or iso_so_far.temp_semantics(query[IVAL], *query[SEMS]):
+        if struct_sems(query[GRAPH], data_graph, iso_so_far, edge,
+                       fdge):
+            iso_so_far.flush()
+            return True
         else:
-            # print("IMPLICIT SEMS", imp_enforce.__name__,"FAILED")
-            return False
+            # print("  "*30,"STRUCT SEMS FAILED!")
+            print()
     else:
-        # print("EXPLICIT SEMS", exp_enforce.__name__, "FAILED")
-        return False
+        # print("TEMPORAL SEMS", imp_enforce.__name__,"FAILED")
+        print()
+
+    iso_so_far.empty_buffer()
+    return False
     
 
 ## determines whether the addition of the pair edge-fdge to the mapping
@@ -401,7 +387,7 @@ def main():
                         help="Use flag to perform query rewriting?")
     parser.add_argument("-n","--naive", action="store_true",
                         help="Naively post-filter results with temporal condition.")
-    parser.add_argument("-f","--filter", action="store_true",
+    parser.add_argument("-f","--use-filter", action="store_true",
                         help="Use a temporal FilterCandidates")
     parser.add_argument("-p","--profiles", action="store_true",
                         help="Use neighborhood profiles/encodings")
@@ -485,13 +471,17 @@ def main():
             # create the query tuple and rewrite if necessary
             query = (query_graph, global_interval, sems)
             # print("Graph has size", len(query_graph))
+            
             query = transform(*query) if args.rewrite else query
             # print("Graph has size", len(query[GRAPH]))
 
-            execution_plan = { "naive": args.naive, "filter": args.naive,
-                               "profiles":args.profiles, "index": args.index,
-                               "search": args.search_order, "hypergraph":
-                               args.hypergraph }
+            execution_plan = { "naive"     : args.naive,
+                               "filter"    : args.use_filter and not args.naive,
+                               "profiles"  : args.profiles and not args.naive,
+                               "index"     : args.index and not args.naive,
+                               "search"    : args.search_order and not args.naive,
+                               "hypergraph": args.hypergraph and not args.naive
+            }
             
             generic_query_proc(query, data_graph, *temp_semantics, execution_plan)
             
