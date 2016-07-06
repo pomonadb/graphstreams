@@ -34,16 +34,17 @@ SEMS = 2                        # Index of the semantics
 # objects, query_graph and datagraph, and the three semantics processing
 # functions, allowing it to be semantics-agnostic.
 # TODO: inject all functional dependencies for more CLI control?
-def generic_query_proc(query, data_graph, exp_enforce,imp_enforce,imp_simplify):
+def generic_query_proc(query, data_graph, exp_enforce,imp_enforce,imp_simplify, options):
     """
     Execute the generic query subgraph isomorphism function
     
     PARAMS:
-       query -- a tuple of the query graph, global_interval, and semantics tuple
-       data_graph -- a Graph object representing the graph to be queried
-       exp_enforce -- a function object enforcing the explicit semantics
-       imp_enforce -- a function object enforcing the explicit semantics
+       query        -- a tuple of the query graph, global_interval, and semantics tuple
+       data_graph   -- a Graph object representing the graph to be queried
+       exp_enforce  -- a function object enforcing the explicit semantics
+       imp_enforce  -- a function object enforcing the explicit semantics
        imp_simplify -- a function object defining the implicit simplification
+       options      -- dictionary specifying the modularity options
        
     """
     global EXP
@@ -60,7 +61,8 @@ def generic_query_proc(query, data_graph, exp_enforce,imp_enforce,imp_simplify):
     # label-matching edges
     for edge in query[GRAPH].edge_tuples(): 
         candidate_set[edge[ID]] = filter_candidates(query, data_graph, edge,
-                                                    exp_enforce)
+                                                    exp_enforce,
+                                                    options["filter"])
 
         # make sure there are viable results
         if len(candidate_set[edge[ID]]) == 0:
@@ -69,7 +71,7 @@ def generic_query_proc(query, data_graph, exp_enforce,imp_enforce,imp_simplify):
 
     # Search for a matching subgraph!
     done = subgraph_search(iso_so_far, query, data_graph, candidate_set,
-                           exp_enforce, imp_enforce, imp_simplify)
+                           exp_enforce, imp_enforce, imp_simplify, options, depth = 0)
     print("Done searching!")
     return done
 
@@ -78,7 +80,7 @@ def generic_query_proc(query, data_graph, exp_enforce,imp_enforce,imp_simplify):
 # it stands `iso_so_far`, the query and data graphs, the set of candidate sets,
 # the three semantics processing functions, and the search_depth
 def subgraph_search(iso_so_far, query, data_graph, candidate_set,
-                    exp_enforce, imp_enforce, imp_simplify, depth = 0):
+                    exp_enforce, imp_enforce, imp_simplify, options, depth = 0):
     """
     The recursive subroutine that that searches the sample space
 
@@ -89,6 +91,7 @@ def subgraph_search(iso_so_far, query, data_graph, candidate_set,
     exp_enforce   -- the function enforcing the explicit semantics
     imp_enforce   -- the function enforcing the implicit semantics
     imp_simplify  -- the simplification function for implicit semantics
+    options       -- dictionary specifying the modularity options
     depth         -- the search depth (also the size of the current iso)
     """
     
@@ -103,8 +106,10 @@ def subgraph_search(iso_so_far, query, data_graph, candidate_set,
     # if the mapping and the query graph are the same size, i.e. every edge has
     # been mapped, record the result.
     if depth >= query[GRAPH].num_edges():
-        print("Found a match with depth: ",depth," and |q| = ", query[GRAPH].num_edges())
-        return record(iso_so_far)
+        mapping = iso_so_far.unzip()
+        if exp_enforce(*mapping) and imp_enforce(mapping[1]):
+            print("Found a match with depth: ",depth," and |q| = ", query[GRAPH].num_edges())
+            return record(iso_so_far)
     
     else:
         # grab a new edgeid
@@ -121,7 +126,7 @@ def subgraph_search(iso_so_far, query, data_graph, candidate_set,
             
             # Test whether the edge pair (e,f) can safely be added to the iso
             if is_joinable(exp_enforce, imp_enforce, query, data_graph,
-                           iso_so_far, edge, fdge):
+                           iso_so_far, edge, fdge, options["naive"]):
 
                 # insert the insertable pair
                 iso_so_far.insert(edge,fdge)
@@ -129,7 +134,7 @@ def subgraph_search(iso_so_far, query, data_graph, candidate_set,
                 # print("   "*depth, edge[ID],"|----->", fdge[ID], "Added successfully")
                 subgraph_search(iso_so_far, query, data_graph,
                                 candidate_set, exp_enforce, imp_enforce,
-                                imp_simplify, depth + 1)
+                                imp_simplify, options, depth + 1)
                     
                 # either an iso was or wasnt found. either way, prune the branch
                 iso_so_far.remove(edge,fdge)
@@ -142,7 +147,7 @@ def subgraph_search(iso_so_far, query, data_graph, candidate_set,
 # their topological and temporal semantics. In addition to these three, it takes
 # the boolean temporal semantics functions, the query graph and the data_graph
 def is_joinable(exp_enforce, imp_enforce, query, data_graph, iso_so_far,
-                edge, fdge):
+                edge, fdge, skip_temp):
     """
     Determines whether the pair (edge, fdge) can be added to iso_so_fair
 
@@ -175,9 +180,9 @@ def is_joinable(exp_enforce, imp_enforce, query, data_graph, iso_so_far,
     # print("trying to join")
     # print("      ", edge, "|-?->", fdge, "to")
     # print(iso_so_far)
-    if exp_enforce(preimg,image):
+    if skip_temp or exp_enforce(preimg,image):
         # print("  "*30, "Explicit Sems passed")
-        if imp_enforce(image):
+        if skip_temp or imp_enforce(image):
             # print("  "*30, "Implicit Sems Passed!")
             if struct_sems(query[GRAPH], data_graph, iso_so_far, preimg[-1],
                            image[-1]): 
@@ -256,7 +261,7 @@ def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
 
 # returns a set of edge tuples from data_graph that could possibly be matched to
 # edge in the query graph, based on the explicit constraint defined by exp_enforce
-def filter_candidates(query, data_graph, edge, exp_enforce):
+def filter_candidates(query, data_graph, edge, exp_enforce, do_filter):
     """
     A function that reduces the sample space for edge in the data graph based on
     the explicit semantics and label matching.
@@ -270,8 +275,9 @@ def filter_candidates(query, data_graph, edge, exp_enforce):
     
     cands = data_graph.edge_tuples_matching(edge, query[GRAPH])
     print("There are", len(cands), "edges with matching labels for", edge)
-    cands = [fdge for fdge in cands if exp_enforce([edge],[fdge])]
-    print("There are", len(cands), "candidates for edge", edge)
+    if do_filter:
+        cands = [fdge for fdge in cands if exp_enforce([edge],[fdge])]
+        print("There are", len(cands), "candidates for edge", edge)
     return cands
 
 def refine_candidates(candidates, query, data_graph, iso_so_far):
@@ -350,7 +356,7 @@ def main():
     parser.add_argument("-t", "--timer", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-r", "--as-root", action="store_true")
-    parser.add_argument("--no-password", dest="password", action="store_false")
+    parser.add_argument("+p","--no-password", dest="password", action="store_false")
 
     # graph generation parameters
     parser.add_argument("-q", "--make-query", type=int,
@@ -365,10 +371,10 @@ def main():
     parser.add_argument("-C", "--force-clear", action="store_true",
                         help="clear graph tables if they exist")
     
-    parser.add_argument("--no-algo", dest="algo", action="store_false",
+    parser.add_argument("+na","--no-algo", dest="algo", action="store_false",
                         help="do not run any algorithms, only graph generation")
 
-    parser.add_argument("--interval", nargs=2, type=int,
+    parser.add_argument("+iv","--interval", nargs=2, type=int,
                         help="The global query interval. Negative values"\
                              "represent an unbounded interval")
 
@@ -390,8 +396,23 @@ def main():
     parser.add_argument("-S", "--SCONSEC", action="store_true",
                         help="select the CONSEC_STR implicit semantics")
 
-    # Flag for query rewriting
-    parser.add_argument("--rewrite", action="store_true", help="Should I perform query rewriting?")
+    # Flags for Modular testing
+    parser.add_argument("-e","--rewrite", action="store_true",
+                        help="Use flag to perform query rewriting?")
+    parser.add_argument("-n","--naive", action="store_true",
+                        help="Naively post-filter results with temporal condition.")
+    parser.add_argument("-f","--filter", action="store_true",
+                        help="Use a temporal FilterCandidates")
+    parser.add_argument("-p","--profiles", action="store_true",
+                        help="Use neighborhood profiles/encodings")
+    parser.add_argument("-i","--index", action="store_true",
+                        help="Use temporal index")
+    parser.add_argument("-s","--search-order", action="store_true",
+                        help="Use temporal search order")
+    parser.add_argument("-g", "--hypergraph",action="store_true",
+                        help="Include Hypergraph in rewriting technique")
+                        
+    
                         
     
     args = parser.parse_args()
@@ -463,11 +484,16 @@ def main():
 
             # create the query tuple and rewrite if necessary
             query = (query_graph, global_interval, sems)
-            print("Graph has size", len(query_graph))
+            # print("Graph has size", len(query_graph))
             query = transform(*query) if args.rewrite else query
-            print("Graph has size", len(query[GRAPH]))
+            # print("Graph has size", len(query[GRAPH]))
+
+            execution_plan = { "naive": args.naive, "filter": args.naive,
+                               "profiles":args.profiles, "index": args.index,
+                               "search": args.search_order, "hypergraph":
+                               args.hypergraph }
             
-            generic_query_proc(query, data_graph, *temp_semantics)
+            generic_query_proc(query, data_graph, *temp_semantics, execution_plan)
             
         db.commit()
         db.close()
