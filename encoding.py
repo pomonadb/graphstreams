@@ -1,6 +1,6 @@
-# This file establishes the encoding methodology for temporal neigborhood
-# encodings. An encoding is a double that includes the sorted list of pairs
-# edge-vertex labels, and 
+from sql_helpers import *
+from temporal_helpers import *
+
 def nbh_subgraphs(imp_sem, graph, edge, desired_depth=2):
     curr_depth = 0
     reached, searched = [(curr_depth, edge)], list()
@@ -33,9 +33,8 @@ def nbh_subgraphs(imp_sem, graph, edge, desired_depth=2):
     """.format(str(desired_depth), temp_tbl, edge_table, lbl_tbl)
 
 
-def profile_graph(db,graph, clique_size):
-    triangles(db,graph)
-    cliques(db,graph,clique_size)
+def profile_graph(db, graph, clique_size):
+    cliques(db, graph, clique_size)
     
 
 def triangles(db,graph):
@@ -69,75 +68,98 @@ def triangles(db,graph):
     """
 
     c = db.cursor()
-    c.execute(mk_triangles)
+    c.execute(mk_triangles, multi=True)
     db.commit()
     c.close()
 
 
 def cliques(db, graph, sz):
     
-    mktbls = """
-      DROP TABLE IF EXISTS cliques;
-      DROP TABLE IF EXISTS clq_cts;
+    drop_cliques = """DROP TABLE IF EXISTS cliques"""
+    drop_clq_cts = """DROP TABLE IF EXISTS clq_cts"""
+    
+    c = db.cursor()
+    eng = get_engine(c)[0]
+    
+    create_cliques = """
       CREATE TABLE cliques(
          kid INT PRIMARY KEY,
          num_verts INT,
-         encoding CHAR({1}),
+         encoding CHAR({0}),
          window_st INT,
          window_nd INT,
-         FOREIGN KEY kid REFERENCES cliques(kid),
-         INDEX USING BTREE (kid, num_verts));
+         FOREIGN KEY (kid) REFERENCES cliques(kid),
+         INDEX USING BTREE (kid, num_verts))
+      ENGINE = {1}
+    """.format(sz, eng)
+    create_clq_cts = """
      CREATE TABLE clq_cts(
          kid INT PRIMARY KEY,
-         eid INT,
-         FOREIGN KEY eid REFERENCES {0}(edge_id)
-     );
-    """.format(graph.name(),l)
-    c = db.cursor()
-    c.execute(mktbls)
+         eid INT NOT NULL,
+         FOREIGN KEY (eid) REFERENCES {0}(edge_id))
+     ENGINE = {1} ;""".format(graph.name(),eng)
+    
+    c.execute(drop_cliques)
+    c.execute(drop_clq_cts)
+    c.execute(create_clq_cts)
+    c.execute(create_cliques)
         
     for i in range(sz):
-        find_cliques(c, graph,sz)
+        find_cliques(db, graph,sz)
 
     db.commit()
     c.close()
 
 
-def find_cliques(c, graph, sz):
-   if sz <= 0:
-       return []
+def find_cliques(db, graph, sz):
+    if sz <= 0:
+        return []
 
-   cliques = []
-   for v in graph.vertices():
-       reached, searched = [], []
-       reached = [set([v])]
-       while len(reached)>0:
-           c = reached.pop()
-           searched.add(c)
-           if len(c) >= sz:
+    cursor = db.cursor()
+    
+    cliques = []
+    for v in graph.vertices():
+        reached, searched = [], []
+        reached = [set([v[0]])]
+        while len(reached) > 0 :
+            c = reached.pop()
+            searched.append(c)
+            if len(c) >= sz:
                 next
-           else:
-               for v in graph.adjacent_to(c):
-                   reached.append(c | set([v]))
-
+            else:
+                for vid in graph.adjacent_to(c):
+                    reached.append(c | set([vid]))
+                    
         cliques.extend(searched)
 
 
     clq_lst = list(cliques)
     for i in range(len(clq_lst)):
-        c.execute_many(
-            """INSERT INTO clq_cts VALUES ({0}, %s)""".format(i),
-            clq_lst[i])
-        insert_params = (i, len(clq_lst), (encode(graph,clq_lst[i])), *simplify(clq_lst[i]))
-        c.execute("""INSERT INTO cliques VALUES ({0}, {1}, {2}, {3},{4},{5})
-                  """.format(insert_params))
-
+        cursor.executemany(
+            """INSERT IGNORE INTO clq_cts VALUES ({0}, %s)""".format(i),
+            map(lambda x: (x,), list(clq_lst[i])))
+        start, end = simplify(graph, clq_lst[i])
+        isrt_sql = """
+                      INSERT IGNORE INTO cliques (kid, num_verts, encoding, window_st, window_nd) 
+                      VALUES ({0}, {1}, "{2}", {3}, {4})
+                   """.format(i, len(clq_lst),
+                                  encode(db,graph,clq_lst[i]),
+                                  start, end)
+        cursor.execute(isrt_sql)
         
-def encode(graph,clq):
-    conds = ",".join((map(str,lst(clq))))
-    """SELECT label ORDER BY ASC
-       FROM {0} as L
-       WHERE L.edge_id IN ({1});""".format(label_table_name(graph.name()), conds)
+def encode(db, graph,clq):
+    conds = ",".join((map(str,list(clq))))
+    c = db.cursor()
+    sql = """SELECT label FROM {0} as L
+             WHERE L.edge_id IN ({1})
+          """.format(label_table_name(graph.name()), conds)
+
+    c.execute(sql)
+    code = "".join([l[0] for l in c.fetchall()])
+    c.close()
+    return code
+    
+    
 
 
 def simplify(graph, clq_lst):

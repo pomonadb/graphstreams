@@ -110,6 +110,22 @@ class DBGraph():
 
         return self._edges
 
+    def induce(self, vid_set):
+        """Returns the edge-set of the subgraph induced on vid_set"""
+        sql = """(SELECT edge_id, source_id, dest_id, start, end FROM {0} as E
+                 WHERE E.source_id IN({1}))
+                 UNION (SELECT edge_id, source_id, dest_id, start, end FROM {0} as E
+                 WHERE E.dest_id IN({1}))
+ 
+              """.format(self.name(), ",".join(map(str,vid_set)))
+
+        c = self._db.cursor()
+        c.execute(sql)
+        eset = c.fetchall()
+                         
+        return set(eset)
+        
+
     def edge_tuples_in(self, join_set = None, should_recalc = False):
         """Get the edge tuples in the specified join_set. Perform in memory
         intersection if should_recalc is False, and SQL operations otherwise."""
@@ -141,7 +157,14 @@ class DBGraph():
             return self._edges & set(join_set)
                 
             
-        
+    def adjacent_to(self, vid_set):
+        vert_intersect = set()
+
+        for vid in vid_set:
+            vert_intersect &= set(self.vneighborhood(vid))
+
+        return vert_intersect
+
         
     # get and or read the edge set
     def edge_ids(self, should_recalc = False):
@@ -245,6 +268,16 @@ class DBGraph():
                   """.format(self._name, src, tgt))
 
         return c.fetchall()
+
+    def vneighborhood(self, vid):
+        """Get the preds and succs of vid"""
+        c = self._db.cursor()
+        c.execute(""" (SELECT source_id FROM {0} WHERE source_id = {1})
+                      UNION (SELECT dest_id FROM {0} WHERE source_id = {1})
+                  """.format(self.name(), vid))
+        return c.fetchall()
+        
+
         
     # Get the edges going into vertex specified by input vid
     def epred_in(self, e, p_set = None):

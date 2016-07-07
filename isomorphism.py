@@ -24,6 +24,7 @@ from graph import DBGraph as Graph  # for modeling the graphs
 from graph_gen import *             # general graph helpers (tuple operations)
 from sql_helpers import *           # general sql helpers
 from query_rewrite import transform # the query rewriter
+from encoding import profile_graph  # the clique finder
 
 GRAPH = 0                       # index of the Query graph
 IVAL = 1                        # index of the Query Global Interval
@@ -339,7 +340,6 @@ def main():
                         help="the table of the data graph to be queried")
 
     # optional flags
-    parser.add_argument("-t", "--timer", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-r", "--as-root", action="store_true")
     parser.add_argument("+p","--no-password", dest="password", action="store_false")
@@ -397,10 +397,9 @@ def main():
                         help="Use temporal search order")
     parser.add_argument("-g", "--hypergraph",action="store_true",
                         help="Include Hypergraph in rewriting technique")
-                        
-    
-                        
-    
+    parser.add_argument("-t", "--deconstruct",type=int,
+                        help="Deconstruct the datagrarh to construct profiles")
+
     args = parser.parse_args()
     print(args)
 
@@ -470,10 +469,10 @@ def main():
 
             # create the query tuple and rewrite if necessary
             query = (query_graph, global_interval, sems)
-            # print("Graph has size", len(query_graph))
-            
             query = transform(*query) if args.rewrite else query
-            # print("Graph has size", len(query[GRAPH]))
+
+            if args.deconstruct != None and args.deconstruct > 0:
+                profile_graph(db, data_graph, args.deconstruct)
 
             execution_plan = { "naive"     : args.naive,
                                "filter"    : args.use_filter and not args.naive,
@@ -482,7 +481,7 @@ def main():
                                "search"    : args.search_order and not args.naive,
                                "hypergraph": args.hypergraph and not args.naive
             }
-            
+
             generic_query_proc(query, data_graph, *temp_semantics, execution_plan)
             
         db.commit()
