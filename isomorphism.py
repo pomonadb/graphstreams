@@ -24,6 +24,7 @@ from graph import DBGraph as Graph  # for modeling the graphs
 from graph_gen import *             # general graph helpers (tuple operations)
 from sql_helpers import *           # general sql helpers
 from query_rewrite import transform # the query rewriter
+from encoding import profile_graph  # the hypernode
 
 GRAPH = 0                       # index of the Query graph
 IVAL = 1                        # index of the Query Global Interval
@@ -55,15 +56,14 @@ def generic_query_proc(query, data_graph, exp_enforce,imp_enforce,imp_simplify, 
     
     iso_so_far = Mapping(directed = True) # set up the isomorphism
     candidate_set = {}                    # initialize the isomorphism
-
-
+    hn_isos = query[GRAPH].match_hypernodes(data_graph)
+    
     # iterate through the edges to generate candidate sets of locally
     # label-matching edges
     for edge in query[GRAPH].edge_tuples(): 
         candidate_set[edge[ID]] = filter_candidates(query, data_graph, edge,
                                                     exp_enforce,
-                                                    options["filter"])
-
+                                                    options["filter"], hn_isos)
         # make sure there are viable results
         if len(candidate_set[edge[ID]]) == 0:
             print("No viable candidates for ", edge)
@@ -247,7 +247,7 @@ def _coincident_sems(query_graph, data_graph, iso_so_far, edge, fdge, pred):
 
 # returns a set of edge tuples from data_graph that could possibly be matched to
 # edge in the query graph, based on the explicit constraint defined by exp_enforce
-def filter_candidates(query, data_graph, edge, exp_enforce, do_filter):
+def filter_candidates(query, data_graph, edge, exp_enforce, do_filter, hn_pairs):
     """
     A function that reduces the sample space for edge in the data graph based on
     the explicit semantics and label matching.
@@ -262,9 +262,27 @@ def filter_candidates(query, data_graph, edge, exp_enforce, do_filter):
     cands = data_graph.edge_tuples_matching(edge, query[GRAPH])
     print("There are", len(cands), "edges with matching labels for", edge)
     if do_filter:
-        cands = [fdge for fdge in cands if exp_enforce([edge],[fdge])]
+        cands = [fdge for fdge in cands if exp_enforce([edge],[fdge])
+                 and hn_check(edge,fdge, hn_pairs)]
         print("There are", len(cands), "candidates for edge", edge)
     return cands
+
+def hn_check(edge,fdge, hn_pairs):
+    """
+    Returns True if edge and fdge have matching hypernode endpoints, or if the
+    none of the endpoints are hypernodes
+    """
+    okay = True
+    if edge[SOURCE] in hn_pairs:
+        okay &= fdge[SOURCE] in hn_pairs[edge[SOURCE]]
+
+    if edge[TARGET] in hn_pairs:
+        okay &= fdge[TARGET] in hn_pairs[edge[TARGET]]
+
+    data_hns = set().union(*hn_pairs.values())
+    fdge_has_hn = fdge[SOURCE] in data_hns or fdge[TARGET] in data_hns
+
+    return  (fdge_has_hn and okay) or (not fdge_has_hn and not okay)
 
 def refine_candidates(candidates, query, data_graph, iso_so_far):
     """
@@ -339,7 +357,6 @@ def main():
                         help="the table of the data graph to be queried")
 
     # optional flags
-    parser.add_argument("-t", "--timer", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-r", "--as-root", action="store_true")
     parser.add_argument("+p","--no-password", dest="password", action="store_false")
@@ -397,10 +414,9 @@ def main():
                         help="Use temporal search order")
     parser.add_argument("-g", "--hypergraph",action="store_true",
                         help="Include Hypergraph in rewriting technique")
-                        
-    
-                        
-    
+    parser.add_argument("-t", "--deconstruct",type=int,
+                        help="Deconstruct the datagrarh to construct profiles")
+
     args = parser.parse_args()
     print(args)
 
@@ -470,10 +486,11 @@ def main():
 
             # create the query tuple and rewrite if necessary
             query = (query_graph, global_interval, sems)
-            # print("Graph has size", len(query_graph))
-            
             query = transform(*query) if args.rewrite else query
-            # print("Graph has size", len(query[GRAPH]))
+
+            if args.deconstruct != None and args.deconstruct > 0:
+                profile_graph(db, data_graph, args.deconstruct)
+                profile_graph(db, query_graph, args.deconstruct)
 
             execution_plan = { "naive"     : args.naive,
                                "filter"    : args.use_filter and not args.naive,
@@ -482,7 +499,7 @@ def main():
                                "search"    : args.search_order and not args.naive,
                                "hypergraph": args.hypergraph and not args.naive
             }
-            
+
             generic_query_proc(query, data_graph, *temp_semantics, execution_plan)
             
         db.commit()

@@ -3,6 +3,7 @@
 
 from sql_helpers import *
 from graph_gen import *
+from encoding import *
 
 class DBGraph():
     """
@@ -20,6 +21,10 @@ class DBGraph():
         self._vertices = set()
         self._meta_edges = set()
         self.iterlist = []
+        self.clique_tbl_name = get_hn_name(self,KLQS)
+        self.clique_cts_tbl_name = get_hn_name(self, KLQ_CTS)
+        self.label_tbl_name = label_table_name(self._name)
+
 
         #  if we were given an input edge set, create a graph based on it
         if es == None or len(es) < 0:
@@ -110,6 +115,63 @@ class DBGraph():
 
         return self._edges
 
+
+    def match_hypernodes(self, other):
+        """
+        Return a dictionary where a query of the form
+           dict [self clique_id][other clique_id][self edge_id] 
+                    -> [Set of other edge_id]
+        that represents the edges matching self.edge_id within the clique pair.
+        There is the invariant that the edges are within the respective clique.
+        """
+        
+        candidates = {}
+
+        # for all of the query- and data- hypernodes (hn) prospective pairs, make
+        # adjacent and containing edge pairs
+
+        hyprnod_qry = """
+              SELECT Qklq.kid, Dklq.kid, Qcts.eid, Dcts.eid 
+              FROM {0} AS Qklq, {1} AS Dklq, 
+                   {2} AS Qcts, {3} AS Dcts, 
+                   {4} AS Qlab, {5} AS Dlab
+              WHERE Qklq.num_verts = Dklq.num_verts AND Qklq.encoding = Dklq.encoding
+                    AND Qcts.kid = Qklq.kid AND Dcts.kid = Dcts.kid
+                    AND Qlab.edge_id = Qcts.eid AND Dlab.edge_id = Dcts.eid
+                    AND Qlab.label = Dlab.label
+              """.format(self.clique_tbl_name,     other.clique_tbl_name,
+                         self.clique_cts_tbl_name, other.clique_cts_tbl_name,
+                         self.label_tbl_name,      other.label_tbl_name)
+
+        c = self._db.cursor()
+        c.execute(hyprnod_qry)
+        
+        for (qkid, dkid, eid, fid) in c:
+            if candidates.setdefault(qkid, {})\
+                         .setdefault(dkid, {})\
+                         .setdefault(eid, {}) == {}:
+                candidates[qkid][dkid][eid] = {fid}
+            else:
+                candidates[qkid][dkid][eid].add(fid)
+            
+        return candidates
+    
+    def induce(self, vid_set):
+        """Returns the edge-set of the subgraph induced on vid_set"""
+        sql = """(SELECT edge_id, source_id, dest_id, start, end FROM {0} as E
+                 WHERE E.source_id IN({1}))
+                 UNION (SELECT edge_id, source_id, dest_id, start, end FROM {0} as E
+                 WHERE E.dest_id IN({1}))
+ 
+              """.format(self.name(), ",".join(map(str,vid_set)))
+
+        c = self._db.cursor()
+        c.execute(sql)
+        eset = c.fetchall()
+                         
+        return set(eset)
+        
+
     def edge_tuples_in(self, join_set = None, should_recalc = False):
         """Get the edge tuples in the specified join_set. Perform in memory
         intersection if should_recalc is False, and SQL operations otherwise."""
@@ -141,7 +203,14 @@ class DBGraph():
             return self._edges & set(join_set)
                 
             
-        
+    def adjacent_to(self, vid_set):
+        vert_intersect = set()
+
+        for vid in vid_set:
+            vert_intersect &= set(self.vneighborhood(vid))
+
+        return vert_intersect
+
         
     # get and or read the edge set
     def edge_ids(self, should_recalc = False):
@@ -170,6 +239,9 @@ class DBGraph():
         edge_ids = c.fetchall()
         c.close
         return set(edge_ids)
+
+    def name(self):
+        return self._name
 
     def edge_tuples_matching(self,edge,e_graph):
         """
@@ -242,6 +314,16 @@ class DBGraph():
                   """.format(self._name, src, tgt))
 
         return c.fetchall()
+
+    def vneighborhood(self, vid):
+        """Get the preds and succs of vid"""
+        c = self._db.cursor()
+        c.execute(""" (SELECT source_id FROM {0} WHERE source_id = {1})
+                      UNION (SELECT dest_id FROM {0} WHERE source_id = {1})
+                  """.format(self.name(), vid))
+        return c.fetchall()
+        
+
         
     # Get the edges going into vertex specified by input vid
     def epred_in(self, e, p_set = None):
