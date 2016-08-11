@@ -3,9 +3,6 @@
 This repo is a collection of resources regarding Pomona College research into
 temporal analysis of graphs.
 
-## `sql/`
-
-This directory contains sqls used in creating the dblp data set
 
 ## `temporal_paths/` 
 
@@ -24,3 +21,7 @@ preprocessing strategies are explored.
 
 This directory contains a cripplingly slow (and unusable) DB-oriented 
 implementation of the 2012 Survey framework for temporal queries.
+
+## `sql/`
+
+This directory contains sqls used in creating the dblp data set
