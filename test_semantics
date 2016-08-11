@@ -1,0 +1,29 @@
+#! /usr/bin/sh
+
+# $1 executable
+# $2 database
+# $3 query table
+# $4 data table
+main(){
+    # EXACT
+    $1 $2 $3 $4 +E -R --no-password	# CONCUR
+    $1 $2 $3 $4 +E -W --no-password	# CONSEC_WK
+    $1 $2 $3 $4 +E -S --no-password	# CONSEC_STR
+
+    # CONTAIN
+    $1 $2 $3 $4 +C -R --no-password	# CONCUR
+    $1 $2 $3 $4 +C -W --no-password	# CONSEC_WK
+    $1 $2 $3 $4 +C -S --no-password	# CONSEC_STR
+    
+    $1 $2 $3 $4 +D -R --no-password	# CONCUR
+    $1 $2 $3 $4 +D -W --no-password	# CONSEC_WK
+    $1 $2 $3 $4 +D -S --no-password	# CONSEC_STR
+    
+    $1 $2 $3 $4 +I -R --no-password	# CONCUR
+    $1 $2 $3 $4 +I -W --no-password	# CONSEC_WK
+    $1 $2 $3 $4 +I -S --no-password	# CONSEC_STR
+    
+}
+
+
+main "$@"

@@ -177,3 +177,8 @@ TSWLatexianTemp*
 #temp files
 *[#]*[#]*
 .*[#]*
+__pycache__/*
+
+# profiling files
+*.prof
+*.tree
