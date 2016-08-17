@@ -24,22 +24,23 @@ We introduce the concept of the {\bf {\em co-incidence interval graph}, a
   \end{itemize}
 \end{defn}
 
-The generic nature of this definition of the co-incidence interval graph accommodate any 
-implicit temporal semantics defined earlier.
+The generic nature of this definition of the co-incidence interval graph
+accommodate any implicit temporal semantics defined earlier.
 
 \todo[inline]{example}
 
 
- Let $\ciFunc{\impVar}(G)$ be the function that computes this co-incidence interval
- graph, given an implicit temporal constraint $\impVar \in \impTC$, i.e.,
- $\ciFunc{\impVar}{G} = \ciGraph{\impVar}(G)$.
+ Let $\ciFunc{\impVar}(G)$ be the function that computes this co-incidence
+ interval graph, given an implicit temporal constraint $\impVar \in \impTC$,
+ i.e., $\ciFunc{\impVar}{G} = \ciGraph{\impVar}(G)$.
 
 \begin{lemma}
   \label{lem:ci_biject}
   Given an implicit temporal constraint $\impVar \in \impTC$, the function
-  $\ciFunc{\impVar}$ is a bijection over unlabelled\footnote{This is a trivial
-    extension that only serves to complicate the proof. The lemma indeed holds
-    for labelled graphs as well.}  graphs $G$ with $\delta(G) \geq 1$.
+  $\ciFunc{\impVar}$ is a bijection over unlabelled\footnote{The extension to
+    labelled graphs is trivial and only serves to complicate the proof. The
+    lemma indeed holds for labelled graphs as well.}  graphs $G$ with $\delta(G)
+  \geq 1$.
 \end{lemma}
 
 \begin{proof}[Proof] Surjectivity follows the definition of function $I_c$, so,
@@ -54,8 +55,8 @@ implicit temporal semantics defined earlier.
 
 \noindent \textbf{Remarks:}
 \begin{itemize}
-  \item Note that we didn't use the edge set of $\ciGraph{\impVar}{G}$ at all in the
-    proof above. This is because all of the structural information needed to
+  \item Note that we didn't use the edge set of $\ciGraph{\impVar}{G}$ at all in
+    the proof above. This is because all of the structural information needed to
     describe the graph $G$ is stored in the edge set (labels are handled by an
     external map $L$).
   \item Note that Lemma~\ref{lem:ci_biject} only holds for graphs with
@@ -92,7 +93,7 @@ implicit temporal semantics defined earlier.
 \end{proof}
 
 Algorithm~\ref{alg:ci_graph} outlines the construction of a coincidence interval
-graph. Its complexity is $O(|E|d_{\max}(G))$ in the edge-relational
+graph. Its complexity is $O(|E|deg_{\max}(G))$ in the edge-relational
 representation of the graph).
 
 Algorithm~\ref{alg:ci_graph_inv} depicts the procedure for restoring the
@@ -101,7 +102,8 @@ label mapping.
 
 \begin{algorithm}
   \label{alg:ci_graph}
-  \caption{\textsc{MakeCoincidenceInterval($G$, $c$)}, equivalently $I_C(G)$}
+  \caption{\textsc{MakeCoincidenceInterval($G$, $\impVar$)},
+                      equivalently $\ciFunc{\impVar}(G)$}
   \SetAlgoLined
   \KwIn{A temporal graph $G = (V_G,E_G, L_G)$, a implicit temporal constraint $c$}
   \KwOut{The coincidence interval graph $\I^c_G$}
@@ -117,11 +119,14 @@ label mapping.
 
 \begin{algorithm}
   \label{alg:ci_graph_inv}
-  \caption{\textsc{UnmakeCoincidenceInterval($I_G^c$, $c$)}, equivalently $I_c^{-1}(\I_G^c)$ }
+  \caption{\textsc{UnmakeCoincidenceInterval($\ciGraph{\impVar}{G}$,
+      $\impVar$)},  equivalently $\ciFunc{\impVar}^{-1}(\ciGraph{\impVar}{G})$}
+  
   \KwIn{The co-incidince interval graph $\I_G^c = (E, \E)$ }
   \KwOut{Temproal graph $G$}
+
   $E_G = E$\;
-   $V_G = \emptyset$\;
+  $V_G = \emptyset$\;
   
   \ForEach{$e \in E_G$}{
     $V = V \cup \{\pi_1(e), \pi_2(e)\}$\;

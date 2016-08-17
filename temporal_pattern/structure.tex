@@ -12,65 +12,478 @@ DualIso~\cite{2014-IEEE-DualIso}.
 
 A 2012 comparison of existing algorithms~\cite{2012-VLDB-IsoSurvey} concluded
 that QuickSI, and GraphQL were the fastest from among other algorithms including
-GADDI, SPath~\cite{2010-VLDB-SPath}, and VF2~\cite{2004-PAMI-VF2}. It created a
-common framework for all of the algorithms, that allowed for a more
-comprehensive understanding of the way in which these graphs are being
-queried. It is essentially broken up into four steps. \textsc{FilterCandidates},
-which performs a label search on a given edge.  Once this has been performed
-for all vertices, the recursive subroutine \textsc{SubgraphSearch} is
-called. Within this routine, there is the function \textsc{NextQueryEdge},
-which determines the search order of the query graph, \textsc{IsJoinable}, which
-determines whether the proposed match is actually viable, \textsc{UpdateState},
-which updates the mapping with the joinable pair, then the recursive call, and
-finally, \textsc{RestoreState}, which removes the pair from the mapping. This is
-explicitly stated in Algorithm~\ref{alg:gen_query_proc}. Note that a key
-difference between this algorithm and the one presented in
-\cite{2012-VLDB-IsoSurvey} is that here we have an algorithm that finds an
-edge-mapping as opposed to a vertex-mapping, and so the structure is slightly
-different. 
+GADDI~\cite{2009-EDBT-GADDI}, SPath~\cite{2010-VLDB-SPath}, and
+VF2~\cite{2004-PAMI-VF2}. It created a common framework for all of the
+algorithms, that allowed for a more comprehensive understanding of the behavior
+of these algorithms.
 
-\begin{algorithm}
-  \label{alg:gen_query_proc}
-  \caption{\textsc{GenericQueryProc}$(Q,G)$}
-  \SetAlgoLined
-  \KwIn{A query graph $Q$, A data graph $G$}
-  \KwOut{All subgraph ismorphisms of $Q$ in $G$}
+We chose the most performant of these algorithms on large data sets, the
+verification algorithm of QuickSI, and extended it simply to allow it to behave
+well for temporal graphs. Additionally we extended the algorithm to allow for
+multigraph queries since it is rare for a temporal data graph to be purely
+simple. A final important change is that our version of QuickSI, which we will
+call QuickTSI, is an \textit{edge} isomorphism, instead of the standard vertex
+isomorphism.
 
-  Initialize the Mapping $M$ to $\emptyset$\;
-  \ForEach{$e \in E(Q)$}{
-    $\candSet(e)$ \texttt{:=} \textsc{FilterCandidates}$(G,Q,e, \cdots )$\;
-    \If{$\candSet(e) = \emptyset$}{ \Return{} \; }
+\subsection{Graph}
+
+In this section we describe the data structures used to prepresent graphs in the
+implementation. We use the adjacency list representation, which allows for
+constant retrieval of the edges incident to any given edge. We also have an edge
+index (\texttt{FeatureIndex}) built into the representation of the graph, which
+is currently unused, but can be used for retrieving the number of isomorphism
+candidates for an edge.
+
+\subsubsection{Edge and Vertex}
+An \texttt{Edge}, and similarly a \texttt{WeightedEdge}, are
+structs~\ref{struct:edge} containing an id, pointers to its endpoints, a start
+time, an end time, a label, and in the case of a \texttt{WeightedEdge}, a
+weight. The types EdgeId, Time, and Label are all just \texttt{int}s, but for
+expressivity (and modularity) we use \texttt{typedef}s to rename them. This
+helps to clarify the purpose of the variable, as well as allowing easy
+replacement with any type that supports comparison and hashing.
+
+\begin{algorithm}[H]
+  \label{struct:edge}
+  \MyStruct{(Weighted)Edge}{
+    EdgeID ident\;
+    Vertex* u\;
+    Vertex* v\;
+    Time start\;
+    Time end\;
+    Label l\;
+    /* Weighted Only */
+    int weight\;
+  }
+\end{algorithm}
+
+This then leads to the question, How do we define a \texttt{Vertex}? Its a
+struct containing an  identifier and a label, where the type of the identifier
+is VertexID, which is a wrapper for int.
+
+\begin{algorithm}[H]
+  \label{struct:vertex}
+  \MyStruct{Vertex}{
+    VertexID ident\;
+    Label l\;
+  } 
+\end{algorithm}
+
+An annoying side effect of defining these as structs and not classes is that
+they are not template-able so for every following definition there will be an
+unweighted and a weighted version. This could be solved simply by paramaterizing
+on the Edge type, so for the purposes of this document we will define the
+unweighted type, with the weighted type definition being implied.
+
+\subsubsection{Adjacency List Representation}
+
+The adjacency list representation is an \texttt{unordered\_map} from VertexIds
+to vectors of \texttt{AdjElement}s, or \texttt{AdjList}s.  An adjacency element
+is a pointer to an edge and a vertex, which, for simplicity we will represent as
+a pair $(v,e)$, but is, in the code, represented as follows
+
+\begin{algorithm}[H]
+  \MyStruct{AdjElement}{
+    Vertex * vtx\;
+    Edge * edge\;
   }
 
-  \textsc{SubgraphSearch}$(Q,G,M,\candSet, \cdots)$\;
+  typedef vector<AdjElement> AdjList\;
+
+  \MyStruct{Graph}{
+    unordered\_map<VertexId, AdjList> edges\;
+    vector<Vertex> vertices\;
+    FeatureIndex index\;
+  }
+\end{algorithm}
+
+FeatureIndex is really a wrapper class for a 3-d array of vectors defined
+\[\texttt{vector<Edge> *** idx}\]
+where the ``keys'' to vector of edges are the vertex label, the edge label, and
+then the other vertex label. The class also contains $\texttt{add}(Edge)$ and
+$\texttt{fetch(Label ul, Label el, Label vl)}$ methods which do exactly as you would
+expect.
+
+However this implies an unnecessary directedness for undirected graphs that
+results in some problems. So to disambiguate the invariant should be enforced
+that the smaller vertex label comes first. So, in $\texttt{fetch(Label ul, Label
+  el, Label vl)}$, if $\texttt{ul > vl}$, the method should recursively call
+$\texttt{fetch(vl, el, ul)}$.
+
+
+The AdjacencyList representation also implies a directedness for undirected
+graphs that is actually helpful. Since, in the algorithm, we are matching a
+QIElem $T$, which usually has an anchored (already-mapped) vertex ($T.p$) and a
+free (unmapped) vertex ($T.v$), we can pass the mapped VertexId into the
+adjacency list representation get back appropriate candidate edges. Of course
+there are several other boolean checks that are necessary. This entire process
+is described further by the \textsc{LoopEdges} subroutine
+(Algorithm~\ref{alg:loop_edges}).
+
+
+\textbf{NOTE:} Even though some of the members of the above structs
+are declared here as pointers, for simplicity we will abandon the
+arrow notation in favor of dot notation, for a greater degree of clarity.
+
+
+\subsubsection{A Problem}
+The biggest problem with this representation is that it has a $O(|V|)$ lookup
+time to get a vertex, and so in the current implementation of the
+$\texttt{make\_graph}$ function, the vertices are copied over into a hashmap for
+faster graph generation, but then the pointers in Edge point to the temporary
+hashmap. Not the vertices copied over to the Graph. The recommendation is to use
+an $\texttt{unordered\_map}$ for the representation of vertices in the Graph
+(i.e. a hash index). That will create a more maintainable data structure. Once
+this change is made be sure to propogate the changes through the functions in
+\texttt{experiments.cpp}
+
+
+\subsection{QIElem}
+
+The algorithm uses a structure called a QISequence to represent the query. It
+can be thought of as an optimally-ordered vector of the query edges. Spanning
+edges are added using a version of Prim's algorithm that resolves conflicts for
+edges with equal weight, followed by every newly-induced edge. The QISequence
+constructor is defined in~\ref{alg:qi_seq}. It also maintains a representative
+temporal approximation for the interval (intersection for \concur, union
+otherwise).
+
+The QIElem is a wrapper class for the edge that imposes a direction and
+precomputes some useful information. The direction is represented by the member
+boolean $\texttt{forwards}$. If the edge is a spanning edge, then the edge is
+$\texttt{forwards}$ if and only if the predecessor spanning edge is adjacent to
+$u$. If the edge is an inner edge, the edge is forwards if $v$ is an endpoint of
+a lower-index edge. An example of this is shown in
+Figure~\ref{fig:qi_elem}. This is to show the invariant that spanning edges
+point ahead in the QISequence, and inner edges point back to endpoints of
+previous edges.
+
+The class provides several accessor methods that get information pertaining to
+the head vertex (those called \texttt{vtx\_}*)  and several that get information
+pertaining to the tail/parent vertex (those called \texttt{par\_}*).
+
+\begin{figure} \centering
+  \begin{tikzpicture}
+    \SetGraphUnit{4}
+    \Vertex{u}
+    \EA(u){v}
+    \Edge[style={->,bend left},label=\texttt{fwd}](u)(v)
+    \Edge(u)(v)
+  \end{tikzpicture}\\[1cm]
+  
+  \begin{tikzpicture}
+    \SetGraphUnit{4}
+    \Vertex{v}
+    \EA(v){u}
+    \Edge[style={->,bend left},label=\texttt{bwd}](u)(v)
+    \Edge(u)(v)
+  \end{tikzpicture}
+  \label{fig:qi_elem}
+  \caption{Depiction of imposed ordering on edges. In our representation the
+    \texttt{fwd} label means \texttt{forward=true} and the \texttt{bwd} label
+    means \texttt{forward=false}}
+\end{figure}
+
+
+\subsection{QISequence}
+
+A QISequence is, at its core, a list of edges (really QIElems) that optimizes
+the search order.
+
+\subsubsection{Construction}
+For convenience, we also store the vertex degrees and the explicit semantics in
+each element of the QISequence (called QIElem) as well as the direction the edge
+is traversed in the spanning tree. Note that for inner edges, their
+``direction'' is considered to be from higher indices to lower indices.  This is
+not a concern for directed graphs. Ultimately, an object-oriented
+implementation, storage of these few fields allows for fast implementation of
+many of the boolean checks described in \ref{alg:query_proc}.
+
+\begin{algorithm}
+  \label{alg:qi_seq}
+  \caption{\textsc{MakeQISeq}$(Q,x,m)$}
+  \SetAlgoLined
+  \KwIn{A query graph $Q = (E,V)$, Explicit semantics $\expVar$, and Implicit semantics
+    $\impVar$ }
+
+  \KwOut{The QISequence $\seq$ constructed from $Q$}
+
+  $\seq := \emptyset$\;
+  $V_t := \emptyset$\;
+  $E_t := \emptyset$\;
+  size $:= 0$\;
+
+  Initilize $used$ to a zeroed map from edges to bools\;
+
+  $P := \textsc{Potentials}(E)$ \;
+  $e := \textsc{SelectFirstEdge}(P, Q, used)$\;
+
+  $E_t \cup \{e\}, \seq.\texttt{add}(e), used[e] := true$\;
+  $V_t \cup \{e.u,e.v\}$\;
+  $size++$\;
+
+  \While{$size < |E|$}{
+    $P := {\textsc{LoopPotentials}}(Q, V_t, used)$\;
+    \If{$|P| > 0$}{
+      $e := \textsc{SelectSpanningEdge}(P, used, Q, V_t)$\;
+
+      $E_t \cup \{e\}, \seq.\texttt{add}(e), used[e] := true$\;
+      $V_t \cup \{e.u,e.v\}$\;
+      $size++$\;
+    }
+
+    \ForEach{edge $f$ in $Q[V_t]$}{
+      \lIf{$used[f]$}{ \textbf{continue} }
+      $\seq.\texttt{add}(f), \texttt{used}[f] = true$\;
+    }
+
+    \lIf{$|P| <= 0$}{ \textbf{break} }
+  }
+  \Return \seq\;
+
+\end{algorithm}
+
+This algorithm uses several important subroutines that determine valid edges
+(\textsc{Potentials}, \textsc{LoopPotentials}) and choose a spanning edge
+(\textsc{FirstSpanningEdge}, \textsc{SelectSpanningEdge}). \textsc{Potentials}
+simply finds the edges with the smallest weight using a Least Of All Time
+method.  \textsc{LoopPotentials} finds an unused edge with exactly one endpoint
+in \seq.  \textsc{SelectFirstEdge} arbitrarily selects one of the edges with
+maximum degree, where \textsc{SelectSpanningEdge} filters by smallest weight,
+largest number of edges in $Q[V_t]$ largest degree.  The (unimplemented)
+temporal tie-breaker would filter by the smallest intersection between the
+predecessor edges and current edge \todo{implement temporal sorting condition in
+  QISequence constructor. Perhaps experimentation to determine the optimal
+  filtering order.}
+
+\subsubsection{Adding an edge to the QISequence}
+Adding to the QISequence is a bit involved. This insertion operation is
+$O(|\seq|)$ as we must determine the status of each edge.  We iterate backwards
+through the QISequence maintaining zero-initialized booleans \texttt{fw},
+\texttt{isR}, and \texttt{anchored}, which become $true$ if the edge is forward,
+if its an inner edge, and if an endpoint has been found, respectively. We check
+if either endpoint has been found, and once it has we assign the variables
+accordingly. This process is detailed in Algorithm~\ref{alg:add}
+
+\begin{algorithm}
+  \label{alg:add}
+  \caption{$\seq.\texttt{add}(e, Q)$}
+  \KwIn{An edge $e$ and the query graph from which the sequence is being
+    constructed $Q$}
+
+  \texttt{fw} := false;
+  \texttt{isR}:= false;
+  \texttt{anchored} := false;
+  
+  \ForEach{$T \in \seq$}{
+    \lIf{isR}{ \textbf{break} }
+
+    \If{ $e.v$ is one of the endpoints of $T.edge$}{
+      \texttt{fw}  := \texttt{anchored}\;
+      \texttt{isR} := \texttt{anchored}\;
+      \texttt{anchored} := true;
+    }
+
+    \If{ $e.u$ is one of the endpoints of $T.edge$}{
+      \texttt{fw}  := not \texttt{anchored}\;
+      \texttt{isR} := \texttt{anchored}\;
+      \texttt{anchored} := true;
+    }
+    
+  }
+\end{algorithm}
+
+The correctness of the algorithm relies on the fact that the booleans behave as
+described above.
+
+
+
+\subsubsection{Edge-Weights and Data-Graph Profiling}
+In the original quickSI algorithm the profile function estimates the
+frequency-per-graph of the edge feature (meaning its triple of vertex label,
+edge label, and vertex label.  For a single graph it should simply calculate the
+number of feasible candidates for each edge and assign it as edge weight
+thereof.  This is used above in QISequence creation
+(Algorithm~\ref{alg:qi_seq}), to find an optimal search order that limits the
+number of results as soon as possible. Currently this is done by linear search
+of the edges resulting in $O(|E(D)||E(Q)|)$ efficiency.  It could/should be done
+in $O(|E(Q)|)$ using the \texttt{FeatureIndex} of the data graph $D$. This is
+the \texttt{profile} function in the \texttt{quicktsi.cpp} file.
+
+
+\subsection{Isomorphism}
+The Isomorphism is tracked using three maps, \texttt{eiso}, the edge isomorphism
+from query EdgeIds to data EdgeIds, \texttt{viso}, the vertex isomorphsim from
+query VertexIds to data VertexIds, and \texttt{de\_used}, a map from data
+EdgeIds to booleans, where true represents that the edge has been used.
+
+This is where state is stored, and new isomorphic mappings are popped on and off
+in standard isomorphism algorithms similar to a stack, but without the easy
+interface. In the normal course of the algorithm we use the accessor methods
+\texttt{add(QIElem T, AdjElement adj)} and \texttt{remove(QIElem T, AdjElement
+  adj)}. These do exactly as you would expect, updating the isomorphic mapping
+with pairs $(T.\texttt{vtx\_idx()}, adj.vtx.ident)$, and $(T.edge.ident,
+adj.edge.ident)$. This assumes that the pair between $T.\texttt{par\_idx()}$ and
+the identifier of the vertex of $adj.edge$ that is not attached to $adj.vtx$ has
+already been found (or will be removed in the future. However, for the first
+addition(last removal) this is not the case. So we the similar methods
+\texttt{first\_add} and \texttt{first\_remove} that take care of this
+descrepancy.
+
+
+\subsection{QuickTSI}
+
+There are two main routines that drive the query, one is
+\textsc{QueryProc}~\cite{alg:query_proc}, which creates the QISequence (an
+optimized encoding of the query pattern), initializes the isomorphism object
+\todo{This is abstracted to three vectors in the QuickSI paper -- an approach
+  that I'd prefer for a paper, but this is clearer given the code}
+(which keeps track of the node and vertex mappings, as well as which data edges
+have been used), and calls other main routine, \textsc{QuickTSI}, which finds
+all subgraphs isomorphic to the graph encoded by the QISequence.
+
+\begin{algorithm}
+  \label{alg:query_proc}
+  \caption{\textsc{QueryProc}$(Q,G)$}
+  \SetAlgoLined
+  \KwIn{A query graph $Q$, A data graph $D$, Explicit Semantics $x$, and
+    Implicit semantics $m$}
+  \KwOut{All subgraph ismorphisms of $Q$ in $G$}
+
+  Let $\seq$ be the QISequence for $Q$\;
+  
+  Initialize the Mapping \iso to $\emptyset$\;
+
+  \textsc{SubgraphSearch}$(Q,D,\iso,0)$\;
 
   \setcounter{AlgoLine}{0}
+  
   \SetKwProg{subroutine}{Subroutine}{}{}
-  \subroutine{\textsc{SubgraphSearch}$(Q,G,M,\candSet, \cdots)$}{
-    \eIf{$|M| = |E(Q)|$}{
-      \textbf{Report} $M$\;
+  \subroutine{\textsc{SubgraphSearch}$(\seq,D,\iso,d)$}{
+    \eIf{$d = |\seq|$}{
+      \textbf{report} $M$\;
     }{
-      $e$ \texttt{:=} \textsc{NextQueryEdge} $(\cdots)$\;
-      $\candSet'(e)$ \texttt{:=} \textsc{RefineCandidates} $(M,u, \candSet(e), \cdots)$\;
-      \ForEach{$f \in \candSet'(e)$ that is not yet matched}{
-        \If{\textsc{IsJoinable}$(Q,G,e,f, \cdots )$}{
-          \textsc{UpdateState}$(M,e,f, \cdots )$\;
-          \textsc{SubgraphSearch}$(Q,G,M, \cdots)$\;
-          \textsc{RestoreState}$(M,e,f, \cdots )$\;
-        }
+      $T := \seq[d]$\;
+      
+      \eIf{$d = 0$}{
+        $C := \textsc{InitialEdges}(D, T, \iso)$\;
+      }{
+        $C := \textsc{LoopEdges}(D, T, \iso)$\;
+      }
+      \ForEach{$e,v \in C$ }{
+        \iso.add(t,adj)\;
+        \textsc{QuickTSI}$(\seq, D, \iso, d+1)$\;
+        \iso.add(t,adj)\;
       }
     }
   }
 \end{algorithm}
 
-In the next section we will detail how to go about developing this framework for
-existing graphs. Specifically, how we can use temporal information to further
-restrict the search space for existing algorithmic paradigms.
+By nature of the construction of the QISequence, key invariants are that
+\textsc{InitialEdges} and \textsc{LoopEdges} return the set of edges that are
+valid for the isomorphism for the QISequence traversed so far. Lets look at each
+of them separately.
 
-\input{postcondition}
-\input{preprocessing}
-\input{naive_filter_candidates}
-\input{naive_refine_candidates}
-\input{next_query_edge}
-\input{naive_joinable}
-\input{add_remove_candidates}
+\textsc{InitialEdges} amounts to a rather simple boolean check against the edges
+of the Data Graph, $D$, that the labels match, and that the explicit semantics
+check out. For additional future pruning power, we include Ullman's
+degree-refinement technique. The three conditions can can be expressed by the
+simple boolean expression
+
+\[\{e | e \in E(D) \wedge T.l = e.l, \wedge \expLocal(\expVar)(T.edge, e) \wedge
+deg(T.vtx) \leq deg(e.v) \}\]
+
+In the implementation, the boolean check is built into the QIElem object,
+meaning that for a data edge $e \in E(D)$ and free endpoint $v$ we call
+$T.\texttt{match}(e, v, D)$
+
+One observation from looking at the data is that there seems to be a lot of
+overhead in the algorithm. This method is one of those places. Currently to find
+the first edge, we are iterating through every edge in the data graph performing
+some boolean checks on them. One way to speed this up significantly would be to
+use the FeatureIndex to get only those edges that exactly match the labels of
+the zeroth element of $\seq$. Even better, here we could encorporate the
+TemporalIndex to find edges that match the labels and match the explicit
+temporal condition.
+
+\begin{algorithm}
+  \label{alg:loop_edges}
+  \caption{$\textsc{LoopEdges}(D, T, \iso )$}
+  \KwIn{A data graph $D$, the QIElem $T$, and the current state $\iso$ }
+  \KwOut{A vector of Adjacency Elements, or pairs $(e,v) \in E(D) \times V(D)$}
+  \SetAlgoLined
+
+  $es$ := $\emptyset$\;
+
+  \ForEach{adjacency list $alist \in D\texttt{.edges}$}{
+    \ForEach{Adjacency Element $(e,v) \in alist$}{
+      \lIf{\iso.\texttt{de\_used[}$e$\texttt{]}}{ \textbf{continue}}
+      \lIf{not T\texttt{.match}$(e, v, D)$}{\textbf{continue}}
+
+      e\texttt{.push}((e,v))\;
+    }
+   }
+
+  \Return $es$\;
+\end{algorithm}
+
+Unsurprisingly, \textsc{LoopEdges} ensures a similar set of invariants looping
+instead through edges coincident with already-mapped edges, that the labels,
+explicit semantics, and degrees are copacetic, that the edge hasnt been used in
+\iso, that the interval of the edge intersects with the outer interval of the
+edge isomorphism, and if the edge is an \textit{inner edge} where both its
+endpoints are already mapped, then the endpoints of the data edge are
+appropriately assigned.  Let's breakdown each of these pieces.
+
+Taking care of the labels, explicit semantics, and degrees are exactly the same
+as in \textsc{InitialEdges} using the $\texttt{match}$ member function of the
+QIElem under consideration $T$. However, at this point there is some partial
+mapping, so we want to check if the data edge we're considering as the image of
+$T$ is in this partial mapping. The \iso object maintains this in the hashmap
+\texttt{de\_used} (\textbf{d}ata \textbf{e}dge \textbf{used}). Then we check if
+there is a nonempty intersection between the interval maintained by \iso and the
+edge to be added. For the \concur semantics, this alone is enough to ensure the
+implicit semantics. For the \strongConsec and \weakConsec semantics it is just a
+search space pruning method\footnote{For \weakConsec on directed graphs, omit
+  the check, since we cannot prune using this information}. So we don't have to
+perform the $O(deg(T))$ implicit semantics check on \textit{every} possible
+edge. Then we check \iso for whether the edge is an inner edge, and if it is, we
+make sure that its second endpoint is mapped appropriately.  And finally we
+check the implicit semantics using $\impBool(\impVar)$.
+
+According to the 2012 survey~\cite{2012-VLDB-IsoSurvey}, the reason that this
+algorithm is so performant is due to the iteration procedure of
+\textsc{LoopEdges}. Unlike other, existing algorithms, at any given search
+depth, it only iterates through edges incident to the image of the partial
+mapping, as opposed to all edges.  This is done simply via the adjacency-list
+representation of the data graph, as demonstrated in
+Algorithm~\ref{alg:loop_edges}
+
+\begin{algorithm}
+  \label{alg:loop_edges}
+  \caption{$\textsc{LoopEdges}(\seq, D, T, \iso)$}
+  \KwIn{The QISequence \seq, the data graph $D$, the QIElem $T$, and the partial
+    mapping \iso}
+  \KwOut{A vector of $(e,v)$ whose addition to \iso is a valid isomorphism for
+    $\seq[\seq.\texttt{idxof}(T)] \cup {T} $, i.e. Candidate edge-vertex pairs }
+
+  $E := \emptyset$\;
+  
+  dat\_vtx\_id := \iso.viso[$T$.p]\;
+  
+  alist $:= D.\texttt{edges}[dat\_vtx\_id]$\;
+
+  \ForEach{ $(e,v) \in$ alist }{
+    
+   \If{\iso.\texttt{viso}$[T.v] \geq 0$} {
+      \lIf {v != \iso.\texttt{viso}[$T$.v]}{ \textbf{continue} }
+    }
+    \lIf{\iso.\texttt{de\_used}[e]}{ \textbf{continue} }
+    \lIf{$T(\iso) \cap (T(e)) = \emptyset$} { \textbf{continue} }
+    \lIf{not $T.\texttt{match}(e,v,D)$} { \textbf{continue} }
+    \lIf{not $\impBool(T.\impVar)(E(\iso) \cup e)$} {\textbf{continue}}
+        
+    es.\texttt{push}$((e,v))$;
+  }
+  \Return es \;
+\end{algorithm}
