@@ -108,9 +108,7 @@ However this implies an unnecessary directedness for undirected graphs that
 results in some problems. So to disambiguate the invariant should be enforced
 that the smaller vertex label comes first. So, in $\texttt{fetch(Label ul, Label
   el, Label vl)}$, if $\texttt{ul > vl}$, the method should recursively call
-$\texttt{fetch(vl, el, ul)}$ \todo{Fix \texttt{fetch} method}
-\todo{Find a way to use \texttt{FeatureIndex} in the algorithm, probably in the
-  \texttt{profile} function}
+$\texttt{fetch(vl, el, ul)}$.
 
 
 The AdjacencyList representation also implies a directedness for undirected
